@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store';
 import { NotificationContainer } from '@/components/common';
-import { CafeScreen as CafeScreenComponent } from '@/components/management';
+import { CafeScreen as CafeScreenComponent, OrderScreen as OrderScreenComponent } from '@/components/management';
 import type { ScreenType } from '@/types';
 
 // 画面プレースホルダーコンポーネント
@@ -85,7 +85,7 @@ function CafeScreen() {
 }
 
 function OrderScreen() {
-  return <PlaceholderScreen name="発注・在庫管理画面" color="#87CEEB" />;
+  return <OrderScreenComponent />;
 }
 
 function ManagementScreen() {
