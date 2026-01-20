@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store';
+import { NotificationContainer } from '@/components/common';
 import type { ScreenType } from '@/types';
 
 // 画面プレースホルダーコンポーネント
@@ -156,6 +157,7 @@ function App() {
   return (
     <div className="w-screen h-screen overflow-hidden bg-game-bg">
       <ScreenComponent />
+      <NotificationContainer />
     </div>
   );
 }
