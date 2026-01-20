@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store';
 import { NotificationContainer } from '@/components/common';
+import { CafeScreen as CafeScreenComponent } from '@/components/management';
 import type { ScreenType } from '@/types';
 
 // 画面プレースホルダーコンポーネント
@@ -80,7 +81,7 @@ function HomeScreen() {
 }
 
 function CafeScreen() {
-  return <PlaceholderScreen name="カフェ営業画面" color="#FFB6C1" />;
+  return <CafeScreenComponent />;
 }
 
 function OrderScreen() {
