@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+
+# Electron compiled files
+electron/*.js
+electron/*.js.map
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Save data (keep the directory but not the contents)
+saves/*.json
+!saves/.gitkeep
