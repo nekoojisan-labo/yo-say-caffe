@@ -1,6 +1,13 @@
 import { useGameStore } from '@/store';
 import { NotificationContainer } from '@/components/common';
-import { CafeScreen as CafeScreenComponent, OrderScreen as OrderScreenComponent } from '@/components/management';
+import {
+  CafeScreen as CafeScreenComponent,
+  OrderScreen as OrderScreenComponent,
+  ManagementScreen as ManagementScreenComponent,
+  ResultScreen as ResultScreenComponent,
+  MenuDevScreen as MenuDevScreenComponent,
+  InteriorScreen as InteriorScreenComponent,
+} from '@/components/management';
 import type { ScreenType } from '@/types';
 
 // 画面プレースホルダーコンポーネント
@@ -89,19 +96,19 @@ function OrderScreen() {
 }
 
 function ManagementScreen() {
-  return <PlaceholderScreen name="経営管理画面" color="#90EE90" />;
+  return <ManagementScreenComponent />;
 }
 
 function MenuDevScreen() {
-  return <PlaceholderScreen name="メニュー開発画面" color="#DDA0DD" />;
+  return <MenuDevScreenComponent />;
 }
 
 function InteriorScreen() {
-  return <PlaceholderScreen name="内装カスタマイズ画面" color="#F0E68C" />;
+  return <InteriorScreenComponent />;
 }
 
 function ResultScreen() {
-  return <PlaceholderScreen name="営業結果画面" color="#FFD700" />;
+  return <ResultScreenComponent />;
 }
 
 function ProtagonistScreen() {
