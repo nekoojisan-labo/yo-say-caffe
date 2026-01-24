@@ -8,6 +8,9 @@ interface GameStore extends GameState {
   // ゲームモード切り替え
   setGameMode: (mode: GameState['gameMode']) => void;
 
+  // ルートロック制御
+  setLockedRoute: (id: string | null) => void;
+
   // 日数進行
   advanceDay: () => void;
 
@@ -31,6 +34,7 @@ const initialState: GameState = {
   money: 10000, // 初期資金
   shopRank: 'F',
   gameMode: 'menu',
+  lockedRouteId: null,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -39,6 +43,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setScreen: (screen) => set({ currentScreen: screen }),
 
   setGameMode: (mode) => set({ gameMode: mode }),
+
+  setLockedRoute: (id) => set({ lockedRouteId: id }),
 
   advanceDay: () => set((state) => ({ day: state.day + 1 })),
 

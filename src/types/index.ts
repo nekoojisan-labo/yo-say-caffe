@@ -6,6 +6,7 @@ export interface GameState {
   money: number;
   shopRank: ShopRank;
   gameMode: 'management' | 'romance' | 'menu';
+  lockedRouteId: string | null;
 }
 
 // 画面タイプ

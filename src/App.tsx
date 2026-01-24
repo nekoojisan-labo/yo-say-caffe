@@ -1,7 +1,8 @@
 import { useGameStore } from '@/store';
 import { NotificationContainer } from '@/components/common';
 import type { ScreenType } from '@/types';
-
+import { ASSETS } from '@/utils/assets';
+import { EventScreen } from '@/components/common/screens/EventScreen';
 // 画面プレースホルダーコンポーネント
 function PlaceholderScreen({ name, color }: { name: string; color: string }) {
   const setScreen = useGameStore((state) => state.setScreen);
@@ -56,17 +57,36 @@ function TitleScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-fairy-pink-200 to-fairy-lavender-100">
-      <div className="text-center animate-fade-in">
-        <h1 className="text-5xl font-bold text-fairy-pink-500 mb-4 drop-shadow-lg">
-          妖精カフェ物語
-        </h1>
-        <p className="text-xl text-gray-600 mb-12">
-          Fairy Cafe Story
-        </p>
+    <div
+      className="w-full h-full flex flex-col items-center justify-center bg-cover bg-center relative"
+      style={{ backgroundImage: `url(${ASSETS.opening})` }}
+    >
+      <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px]" />
+      <div className="text-center animate-fade-in relative z-10 flex flex-col items-center">
+        {/* 日本語ロゴ */}
+        <img
+          src={ASSETS.logoJa}
+          alt="妖精カフェ物語"
+          className="w-[600px] mb-2 filter drop-shadow-[0_4px_4px_rgba(255,255,255,0.8)]"
+        />
+
+        {/* 英語ロゴ */}
+        <img
+          src={ASSETS.logoEn}
+          alt="Fairy Cafe Story"
+          className="w-[400px] mb-4 opacity-90 drop-shadow-md"
+        />
+
+        {/* サブタイトル */}
+        <img
+          src={ASSETS.subtitle}
+          alt="サブタイトル"
+          className="w-[500px] mb-12 opacity-80 drop-shadow-sm"
+        />
+
         <button
           onClick={() => setScreen('home')}
-          className="px-12 py-4 bg-white rounded-2xl shadow-card hover:shadow-lg hover:scale-105 transition-all duration-300 text-fairy-pink-500 font-bold text-xl animate-pulse-soft"
+          className="px-16 py-5 bg-white/90 rounded-full shadow-card hover:shadow-xl hover:scale-105 transition-all duration-300 text-fairy-pink-500 font-bold text-2xl animate-pulse-soft border-4 border-fairy-pink-100"
         >
           はじめる
         </button>
@@ -115,9 +135,9 @@ function IkemenDetailScreen() {
   return <PlaceholderScreen name="イケメン詳細画面" color="#FF8C69" />;
 }
 
-function EventScreen() {
-  return <PlaceholderScreen name="イベント画面" color="#DA70D6" />;
-}
+
+
+
 
 function GalleryScreen() {
   return <PlaceholderScreen name="CGギャラリー画面" color="#BA55D3" />;

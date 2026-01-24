@@ -354,7 +354,13 @@ export function getEventsForIkemen(ikemenId: string): GameEvent[] {
 }
 
 // 好感度条件を満たしているイベントを取得
-export function getAvailableEvents(ikemenId: string, affection: number): GameEvent[] {
+export function getAvailableEvents(ikemenId: string, affection: number, lockedRouteId: string | null = null): GameEvent[] {
+  // ロック中で、そのキャラのルートでなく、かつ共通イベントフラグもない場合は除外
+  // (現状 GameEvent型に isCommon がないので id チェックのみ)
+  if (lockedRouteId && lockedRouteId !== ikemenId) {
+    return [];
+  }
+
   return EVENT_DATA.filter(
     event => event.ikemenId === ikemenId && event.requiredAffection <= affection
   );
