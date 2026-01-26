@@ -26,7 +26,7 @@ export function Card({
   return (
     <div
       className={`
-        bg-white rounded-2xl shadow-card border border-fairy-pink-100
+        ${className.includes('bg-') ? '' : 'bg-white'} rounded-2xl shadow-card border border-fairy-pink-100
         ${isClickable ? 'cursor-pointer transition-all duration-200' : ''}
         ${hoverable ? 'hover:shadow-lg hover:scale-[1.02] hover:border-fairy-pink-200' : ''}
         ${selected ? 'ring-2 ring-fairy-pink-300 border-fairy-pink-300' : ''}

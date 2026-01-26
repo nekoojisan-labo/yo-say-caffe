@@ -1,18 +1,26 @@
-// Assets mapping to handle Japanese filenames
 import opening from '@/assets/images/characters/オープニング画面.jpg';
 import logoJa from '@/assets/images/logo_ja.png';
 import logoEn from '@/assets/images/logo_en.png';
 import subtitle from '@/assets/images/subtitle.png';
-import aoi from '@/assets/images/characters/アオイ（Aoi）星（Star）.jpg';
-import kagerou from '@/assets/images/characters/カゲロウ（Kagerou）闇（Dark）.jpg';
-import shion from '@/assets/images/characters/シオン（Shion）森（Forest）.jpg';
-import soma from '@/assets/images/characters/ソウマ（Souma）雷（Thunder）.jpg';
-import haruto from '@/assets/images/characters/ハルト（Haruto）風（Wind）.jpg';
-import mizuki from '@/assets/images/characters/ミズキ（Mizuki）水（Water）.jpg';
-import yukito from '@/assets/images/characters/ユキト（Yukito）氷（Ice）.jpg';
-import riku from '@/assets/images/characters/リク（Riku）土（Earth）.jpg';
-import lucia from '@/assets/images/characters/ルシア（Lucia）光（Light）.jpg';
-import ren from '@/assets/images/characters/レン（Ren）炎（Fire）.jpg';
+import aoi from '@/assets/images/characters/aoi.jpg';
+import kagerou from '@/assets/images/characters/kagerou.jpg';
+import shion from '@/assets/images/characters/shion.jpg';
+import soma from '@/assets/images/characters/souma.jpg';
+import haruto from '@/assets/images/characters/haruto.jpg';
+import mizuki from '@/assets/images/characters/mizuki.jpg';
+import yukito from '@/assets/images/characters/yukito.jpg';
+import riku from '@/assets/images/characters/riku.jpg';
+import lucia from '@/assets/images/characters/lucia.jpg';
+import ren from '@/assets/images/characters/ren.jpg';
+
+// Main Character
+import mcL0 from '@/assets/images/characters/mainchara/mc_L0.png';
+import mcL1 from '@/assets/images/characters/mainchara/mc_L1.png';
+import mcL2 from '@/assets/images/characters/mainchara/mc_L2.png';
+import mcL3 from '@/assets/images/characters/mainchara/mc_L3.png';
+import mcL4 from '@/assets/images/characters/mainchara/mc_L4.png';
+import mcL5 from '@/assets/images/characters/mainchara/mc_L5.png';
+import mcL6 from '@/assets/images/characters/mainchara/mc_L6.png';
 
 export const ASSETS = {
     opening,
@@ -23,12 +31,22 @@ export const ASSETS = {
         aoi,
         kagerou,
         shion,
-        soma,
+        souma: soma,
         haruto,
         mizuki,
         yukito,
         riku,
         lucia,
         ren,
+    } as Record<string, string>,
+    mainChara: {
+        default: mcL3,
+        lv0: mcL0,
+        lv1: mcL1,
+        lv2: mcL2,
+        lv3: mcL3,
+        lv4: mcL4,
+        lv5: mcL5,
+        lv6: mcL6,
     } as Record<string, string>,
 };

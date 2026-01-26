@@ -1,12 +1,53 @@
-// ===== ゲーム全体の状態 =====
+import { CharacterId } from '@/game/characters';
 
 export interface GameState {
   currentScreen: ScreenType;
   day: number;
   money: number;
+  reputation: number; // 評判 0-100
+  glamor: {
+    level: number;    // 幻装レベル 0-6
+    stability: number; // 安定度 0-100
+    points: number;    // 幻装ポイント 0-9999
+  };
+  protagonistVisual: {
+    setId: string;     // 例: "mc_L3"
+    parts: Record<string, string>;
+  };
+  // キャラクター関連
+  affection: Record<CharacterId, number>;
+  encyclopediaUnlocked: Record<CharacterId, boolean>;
+  lastAppearedDay: Record<CharacterId, number>;
+
   shopRank: ShopRank;
   gameMode: 'management' | 'romance' | 'menu';
+  dayPhase: DayPhase;
+  flags: GameFlags;
+  kpi: FinancialStats;
+  history: {
+    lastDaySummary?: DayResult;
+    dailyResults: DayResult[]; // 履歴データ
+    lastEventId?: string;
+  };
   lockedRouteId: string | null;
+  management: ManagementState;
+  romanceFocus: RomanceFocus;
+  romanceTickets: Record<CharacterId, number>;
+}
+
+export interface RomanceFocus {
+  id: CharacterId | null;
+  heat: number; // 0-100
+}
+
+export type DayPhase = 'PREP' | 'OPEN' | 'CLOSE' | 'RESULT' | 'EVENT' | 'DONE';
+
+export interface GameFlags {
+  joinedGuild: boolean;
+  routeLock: string | null;
+  gameOver: boolean;
+  gameOverReason?: string;
+  patronStage: number; // 痛客進行度
 }
 
 // 画面タイプ
@@ -35,6 +76,7 @@ export type ShopRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export interface Protagonist {
   name: string;
   level: number;
+  fantasyLevel: number; // 幻想レベル
   stats: {
     charm: number;    // 魅力
     talk: number;     // 話術
@@ -129,15 +171,47 @@ export interface Inventory {
 
 export interface DayResult {
   day: number;
-  customers: number;
   sales: number;
-  cost: number;
+  cogs: number; // 原価
   fixedCost: number;
+  variableCost: number;
+  // 詳細内訳
+  breakdown: {
+    rent: number;      // 家賃
+    labor: number;     // 人件費
+    utilities: number; // 光熱費
+    maintenance: number; // 幻装維持費
+    other: number;     // その他（広告費、修理費など）
+  };
   profit: number;
-  wastedItems: number;
-  avgSatisfaction: number;
+  cashAfter: number;
+  customers: number;
+  reputationDelta: number;
+  glamorDelta: { level?: number; stability?: number };
+  breakEven: number;
+  warnings: string[];
   ikemenVisits: { ikemenId: string; affectionGain: number }[];
   protagonistChanges: Partial<Protagonist['stats']>;
+}
+
+export interface EventPayload {
+  id: string;
+  title: string;
+  body: string;
+  characterId?: string;
+  choices: {
+    label: string;
+    heartDelta?: number;
+    repDelta?: number;
+    cashDelta?: number;
+    glamorPointsDelta?: number;
+    effects?: Partial<GameState>;
+    nextScreen?: ScreenType;
+  }[];
+  type: "system" | "romance" | "weekly" | "danger" | "daily" | "ending" | "intro";
+  bgKey?: string;
+  portraitKey?: string;
+  isGameOver?: boolean;
 }
 
 // ===== イベント =====
@@ -297,15 +371,14 @@ export interface CGItem {
 
 export interface FinancialStats {
   sales: number;
-  cost: number;
-  fixedCost: number;
-  waste: number;
+  cogs: number; // 原価
   profit: number;
-  costRate: number;
-  profitRate: number;
-  breakEvenPoint: number;
-  breakEvenAchievement: number;
-  wasteRate: number;
+  fixedCost: number;
+  variableCost: number;
+  breakEven: number; // 損益分岐点
+  waste?: number;
+  costRate?: number;
+  profitRate?: number;
 }
 
 // 経営アドバイス
@@ -321,4 +394,44 @@ export interface Notification {
   type: 'success' | 'error' | 'info' | 'warning';
   message: string;
   duration?: number;
+}
+
+// ===== 経営シミュレーション =====
+
+export interface ManagementState {
+  capital: number;     // 自己資本
+  popularity: number;  // 認知度・評判 (0-100)
+  staffSkill: number;  // スタッフ習熟度 (0-100)
+  inventoryLoss: number; // 廃棄率
+  currentTrend: string; // トレンド
+  potential: number;    // 立地ポテンシャル
+  weeklyHistory: WeeklyResult[];
+}
+
+export interface WeeklyResult {
+  week: number;
+  sales: number;
+  cogs: number;       // 材料費 (F)
+  labor: number;      // 人件費 (L)
+  rent: number;       // 家賃 (R)
+  ads: number;        // 広告費
+  loss: number;       // 廃棄ロス
+  profit: number;     // 利益
+  customers: number;
+  satisfaction: number;
+  popularityDelta: number;
+  staffSkillDelta: number;
+  topics: string[];
+  externalFactors: {
+    weather: string;
+    trend: string;
+    neighborhood: string;
+  };
+}
+
+export interface ManagementDecision {
+  menuDev: string;      // メニュー開発
+  procurement: number;  // 仕入れ量 (予測に対する倍率等)
+  shifts: number;       // シフト調整 (スタッフ数等)
+  investment: number;   // 設備投資/広告
 }
