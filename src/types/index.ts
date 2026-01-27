@@ -118,6 +118,7 @@ export interface UnlockCondition {
 export interface InventoryItem {
   stock: number;
   pendingOrder: number;
+  waste: number;
 }
 
 export interface Inventory {
