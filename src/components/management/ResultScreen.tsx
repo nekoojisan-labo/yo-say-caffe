@@ -28,7 +28,7 @@ export function ResultScreen() {
 
   // BGM再生
   useEffect(() => {
-    playSE('complete');
+    playSE('success');
     const timer = setTimeout(() => setShowAnimation(false), 1500);
     return () => clearTimeout(timer);
   }, []);
@@ -231,7 +231,6 @@ export function ResultScreen() {
                       max={100}
                       color="pink"
                       size="sm"
-                      showLabel
                     />
                   </div>
                 </div>

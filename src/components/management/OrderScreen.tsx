@@ -5,7 +5,7 @@ import { OrderItem } from './OrderItem';
 import { OrderSummary } from './OrderSummary';
 import { useOrder } from '@/hooks/useOrder';
 import { MENU_DATA } from '@/data/menuData';
-import type { MenuItem } from '@/types';
+// MenuItem type imported implicitly through MENU_DATA
 
 type CategoryFilter = 'all' | 'drink' | 'food' | 'sweet';
 

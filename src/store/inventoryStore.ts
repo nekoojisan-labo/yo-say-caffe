@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Inventory, InventoryItem } from '@/types';
+import type { Inventory } from '@/types';
 import { MENU_DATA } from '@/data/menuData';
 
 interface InventoryStore {

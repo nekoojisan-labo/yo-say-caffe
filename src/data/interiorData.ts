@@ -1,5 +1,8 @@
 import type { InteriorItem } from '@/types';
 
+// インテリアカテゴリの型定義
+export type InteriorCategory = 'wall' | 'floor' | 'furniture' | 'decoration' | 'lighting';
+
 export const INTERIOR_DATA: InteriorItem[] = [
   // ===== 席 =====
   {

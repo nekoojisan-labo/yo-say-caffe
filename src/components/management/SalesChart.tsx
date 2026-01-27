@@ -25,8 +25,6 @@ export function SalesChart({ data, height = 150 }: SalesChartProps) {
 
   const maxValue = Math.max(...values, 1);
   const minValue = Math.min(...values);
-  const padding = 40;
-  const chartHeight = height - padding * 2;
 
   // ポイントを計算
   const points = values.map((v, i) => {

@@ -16,7 +16,7 @@ interface TimeControllerProps {
 
 export function TimeController({
   currentTime,
-  isOpen,
+  isOpen: _isOpen,
   isPaused,
   speed,
   mode,

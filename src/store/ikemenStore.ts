@@ -30,6 +30,9 @@ interface IkemenStore {
   // イベント進行状況を取得
   getEventProgress: (ikemenId: string) => EventProgress[];
 
+  // トップ好感度のイケメンを取得
+  getTopAffectionIkemen: (count: number) => { ikemenId: string; affection: number }[];
+
   // イケメンデータを設定（ロード用）
   setIkemenList: (ikemenList: Ikemen[]) => void;
 
@@ -121,6 +124,15 @@ export const useIkemenStore = create<IkemenStore>((set, get) => ({
   getEventProgress: (ikemenId) => {
     const ikemen = get().getIkemen(ikemenId);
     return ikemen?.events ?? [];
+  },
+
+  getTopAffectionIkemen: (count) => {
+    return get()
+      .ikemenList
+      .filter((ikemen) => ikemen.unlocked && ikemen.affection > 0)
+      .sort((a, b) => b.affection - a.affection)
+      .slice(0, count)
+      .map((ikemen) => ({ ikemenId: ikemen.id, affection: ikemen.affection }));
   },
 
   setIkemenList: (ikemenList) => set({ ikemenList }),

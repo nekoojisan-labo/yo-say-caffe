@@ -4,7 +4,7 @@ interface CounterProps {
   onServe?: (customerId: string) => void;
 }
 
-export function Counter({ onServe }: CounterProps) {
+export function Counter({ onServe: _onServe }: CounterProps) {
   const { mode, customers } = useCafeStore();
 
   // カウンターで待っている客

@@ -1,5 +1,4 @@
 import type { CustomerState } from '@/types';
-import { useIkemenStore } from '@/store';
 import { IKEMEN_MASTER_DATA } from '@/data/ikemenData';
 
 interface CustomerProps {
