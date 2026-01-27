@@ -32,7 +32,7 @@ export function useBusinessDay() {
     seats,
   } = useCafeStore();
 
-  const { consumeStock, recordSale } = useInventoryStore();
+  const { consumeStock } = useInventoryStore();
   const { changeAffection, getIkemen } = useIkemenStore();
   const { addMoney, advanceDay } = useGameStore();
   const { changeStats } = useProtagonistStore();

@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useGameStore, useCafeStore, useInventoryStore, useIkemenStore } from '@/store';
+import { useGameStore, useCafeStore } from '@/store';
 import { Header } from '@/components/common';
 import { CafeView } from './CafeView';
 import { TimeController } from './TimeController';

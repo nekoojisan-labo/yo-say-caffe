@@ -1,5 +1,8 @@
 import type { MenuItem } from '@/types';
 
+// メニューカテゴリの型定義
+export type MenuCategory = 'drink' | 'food' | 'sweet';
+
 export const MENU_DATA: MenuItem[] = [
   // ===== 初期解放メニュー =====
   {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAudioStore } from '@/store';
-import { BGM_TRACKS, SE_SOUNDS, getBGMPath, getSEPath } from '@/data/audioData';
+import { getBGMPath, getSEPath } from '@/data/audioData';
 import type { BGMTrackId, SESoundId } from '@/data/audioData';
 
 // オーディオマネージャー（シングルトン）
@@ -222,7 +222,7 @@ export function useButtonSE() {
 
 // 画面遷移時のBGM管理
 export function useScreenBGM(trackId: BGMTrackId | null) {
-  const { playBGM, stopBGM } = useAudio();
+  const { playBGM } = useAudio();
 
   useEffect(() => {
     if (trackId) {

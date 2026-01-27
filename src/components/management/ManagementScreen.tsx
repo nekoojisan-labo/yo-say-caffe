@@ -9,7 +9,7 @@ import { calculateFinancialStats } from '@/utils/financial';
 type PeriodFilter = 'today' | 'week' | 'month';
 
 export function ManagementScreen() {
-  const { setScreen, day, money } = useGameStore();
+  const { setScreen, day } = useGameStore();
   const { salesHistory } = useInventoryStore();
   const [period, setPeriod] = useState<PeriodFilter>('week');
 
