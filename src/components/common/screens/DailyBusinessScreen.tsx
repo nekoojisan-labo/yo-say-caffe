@@ -104,23 +104,134 @@ export function DailyBusinessScreen() {
     setScreen('home');
   };
 
-  const getShionAdvice = (): string => {
-    if (!dayResult) return '';
+const getShionAdvice = (): { message: string; mood: 'happy' | 'concerned' | 'neutral' | 'excited' } => {
+  if (!dayResult) return { message: '', mood: 'neutral' };
 
-    if (dayResult.profit < 0) {
-      return '今日は赤字だったね...。仕入れの量を見直すか、メニューの価格設定を考え直した方がいいかもしれない。無理せず、少しずつ改善していこう。';
+  const { customers, sales, cost, profit, ikemenVisits } = dayResult;
+  const profitMargin = sales > 0 ? (profit / sales) * 100 : 0;
+  const currentMoney = money;
+  
+  // 優先度順にアドバイスを判定
+  
+  // 1. 危機的状況
+  if (currentMoney < 5000) {
+    return {
+      message: '資金がかなり厳しい状態だね...。まずは確実に売れるメニューに絞って、少量仕入れで利益を積み重ねよう。僕も全力でサポートするから、諦めないで。',
+      mood: 'concerned'
+    };
+  }
+
+  // 2. 大赤字
+  if (profit < -1000) {
+    return {
+      message: '今日は大きな赤字だった...。仕入れが多すぎたか、お客さんが予想より少なかったね。明日は仕入れ量を半分くらいに抑えて様子を見てみよう。',
+      mood: 'concerned'
+    };
+  }
+
+  // 3. 客が来なかった
+  if (customers < 5) {
+    return {
+      message: 'お客さんがほとんど来なかったね...。在庫が余ってしまうかも。評判を上げるために、まずはイケメンたちとの交流を増やしてみては？口コミで広がるかもしれないよ。',
+      mood: 'concerned'
+    };
+  }
+
+  // 4. イケメン複数来店
+  if (ikemenVisits.length >= 3) {
+    const names = ikemenVisits.map(id => CHARACTERS[id].name).join('、');
+    return {
+      message: `今日は${names}と、なんと${ikemenVisits.length}人も来てくれたね！すごい人気だ。この調子で彼らの好みのメニューを揃えておくと、もっと来てくれるかもしれないよ。`,
+      mood: 'excited'
+    };
+  }
+
+  // 5. イケメン来店あり
+  if (ikemenVisits.length > 0) {
+    const visitedChar = CHARACTERS[ikemenVisits[0]];
+    const currentAffection = affection[ikemenVisits[0]] || 0;
+    
+    if (currentAffection >= 50) {
+      return {
+        message: `${visitedChar.name}との絆が深まってきているね。彼の好みをもっと研究して、特別なメニューを用意してみたらどうかな？きっと喜んでくれるよ。`,
+        mood: 'happy'
+      };
     }
-    if (dayResult.customers < 10) {
-      return 'お客さんが少なかったね。評判を上げるために、イケメンたちとの交流を深めてみては？彼らが来店すると噂が広まるかもしれないよ。';
-    }
-    if (dayResult.ikemenVisits.length > 0) {
-      return `今日は${dayResult.ikemenVisits.map(id => CHARACTERS[id].name).join('、')}が来てくれたね！彼らとの絆を大切にしていこう。`;
-    }
-    if (dayResult.profit > dayResult.sales * 0.3) {
-      return '素晴らしい利益率だ！この調子で経営を続けていこう。余裕があれば新メニューの開発に投資するのもいいかもしれないね。';
-    }
-    return '安定した営業ができたね。少しずつ改善していけば、きっと繁盛店になれるよ。僕も応援してるからね。';
+    return {
+      message: `${visitedChar.name}が来てくれたね！${visitedChar.attribute}の妖精は${visitedChar.role}として知られているんだ。彼の好みを覚えておくと、また来てくれるかもしれないよ。`,
+      mood: 'happy'
+    };
+  }
+
+  // 6. 高利益率
+  if (profitMargin > 40) {
+    return {
+      message: `素晴らしい！利益率が${Math.round(profitMargin)}%もある。効率的な経営ができているね。余裕があるなら新メニューの開発に投資してみては？選択肢が増えればお客さんも喜ぶよ。`,
+      mood: 'excited'
+    };
+  }
+
+  // 7. 大盛況
+  if (customers >= 25) {
+    return {
+      message: `今日は${customers}人も来店してくれた！大盛況だね。このペースなら在庫を少し増やしても大丈夫かも。でも廃棄には気をつけてね。`,
+      mood: 'happy'
+    };
+  }
+
+  // 8. 安定した利益
+  if (profit > 500) {
+    return {
+      message: `安定した利益が出ているね。${profit.toLocaleString()}Gの黒字は立派だよ。この調子を維持しながら、少しずつ規模を拡大していこう。`,
+      mood: 'happy'
+    };
+  }
+
+  // 9. 小さな赤字
+  if (profit < 0) {
+    return {
+      message: '今日は少し赤字だったけど、大きな問題じゃないよ。仕入れと売れ行きのバランスを少し調整すれば、すぐに黒字に戻せるはず。焦らずいこう。',
+      mood: 'neutral'
+    };
+  }
+
+  // 10. 低利益率
+  if (profitMargin < 15 && profit > 0) {
+    return {
+      message: '黒字ではあるけど、利益率が少し低いね。原価の高いメニューに偏っていないかな？バランスよく仕入れると、もう少し利益が出せるかもしれないよ。',
+      mood: 'neutral'
+    };
+  }
+
+  // 11. 日数に応じたアドバイス
+  if (day <= 3) {
+    return {
+      message: 'まだ始まったばかりだね。最初は無理せず、少量の仕入れで感覚をつかんでいこう。お客さんの好みや来店パターンが分かってくれば、自然と利益も上がっていくよ。',
+      mood: 'neutral'
+    };
+  }
+
+  if (day >= 10 && day % 10 === 0) {
+    return {
+      message: `${day}日目おめでとう！ここまでよく頑張ったね。累計の売上と利益を振り返って、次の目標を立ててみよう。僕はいつでも君の味方だよ。`,
+      mood: 'happy'
+    };
+  }
+
+  // 12. デフォルト
+  const defaultMessages = [
+    '今日も一日お疲れ様。コツコツ続けることが大切だよ。明日も一緒に頑張ろう。',
+    '順調な営業だったね。この調子で少しずつ成長していこう。僕も応援してるから。',
+    '安定した一日だったね。新しいメニューや内装で変化をつけてみるのもいいかもしれないよ。',
+    '今日の経験が明日に活きるよ。毎日の積み重ねが、きっと大きな成果につながるはずさ。',
+  ];
+  
+  return {
+    message: defaultMessages[day % defaultMessages.length],
+    mood: 'neutral'
   };
+};
+
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0d0517] text-white overflow-hidden">
@@ -376,57 +487,115 @@ export function DailyBusinessScreen() {
           )}
 
           {/* アドバイスパート（シオンの画像付き） */}
-          {phase === 'advice' && (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <div className="max-w-3xl w-full">
-                <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 rounded-3xl p-6 border border-green-500/30 shadow-2xl">
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* シオンの画像 */}
-                    <div className="flex-shrink-0 flex flex-col items-center">
-                      <div className="w-32 h-40 rounded-2xl overflow-hidden border-2 border-green-400/50 shadow-lg shadow-green-500/30">
-                        {ASSETS.characters.shion ? (
-                          <img
-                            src={ASSETS.characters.shion}
-                            alt="シオン"
-                            className="w-full h-full object-cover object-top"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl">
-                            🌳
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-center mt-2">
-                        <p className="font-bold text-green-300">シオン</p>
-                        <p className="text-xs text-green-400/70">Forest Sage</p>
-                      </div>
-                    </div>
+{phase === 'advice' && (() => {
+  const advice = getShionAdvice();
+  const moodStyles = {
+    happy: {
+      bg: 'from-green-900/40 to-emerald-900/40',
+      border: 'border-green-500/30',
+      shadow: 'shadow-green-500/30',
+      nameColor: 'text-green-300',
+      icon: '😊'
+    },
+    excited: {
+      bg: 'from-yellow-900/40 to-orange-900/40',
+      border: 'border-yellow-500/30',
+      shadow: 'shadow-yellow-500/30',
+      nameColor: 'text-yellow-300',
+      icon: '✨'
+    },
+    concerned: {
+      bg: 'from-blue-900/40 to-indigo-900/40',
+      border: 'border-blue-500/30',
+      shadow: 'shadow-blue-500/30',
+      nameColor: 'text-blue-300',
+      icon: '🤔'
+    },
+    neutral: {
+      bg: 'from-purple-900/40 to-violet-900/40',
+      border: 'border-purple-500/30',
+      shadow: 'shadow-purple-500/30',
+      nameColor: 'text-purple-300',
+      icon: '🌿'
+    }
+  };
+  const style = moodStyles[advice.mood];
 
-                    {/* 吹き出し */}
-                    <div className="flex-1">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 relative">
-                        <div className="hidden md:block absolute left-[-12px] top-8 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-12 border-r-white/10" />
-                        <p className="text-lg leading-relaxed">{getShionAdvice()}</p>
-                      </div>
-                    </div>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="max-w-3xl w-full">
+        <div className={`bg-gradient-to-br ${style.bg} rounded-3xl p-6 border ${style.border} shadow-2xl ${style.shadow}`}>
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* シオンの画像 */}
+            <div className="flex-shrink-0 flex flex-col items-center">
+              <div className={`w-32 h-40 rounded-2xl overflow-hidden border-2 ${style.border} shadow-lg ${style.shadow}`}>
+                {ASSETS.characters.shion ? (
+                  <img
+                    src={ASSETS.characters.shion}
+                    alt="シオン"
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl">
+                    🌳
                   </div>
-                </div>
-
-                <div className="flex justify-center mt-8">
-                  <button
-                    onClick={handleFinish}
-                    className="group relative px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl font-bold text-xl shadow-2xl hover:scale-105 transition-all"
-                  >
-                    <span className="flex items-center gap-3">
-                      <span>🌅</span>
-                      <span>翌日へ</span>
-                    </span>
-                  </button>
-                </div>
+                )}
+              </div>
+              <div className="text-center mt-2">
+                <p className={`font-bold ${style.nameColor} flex items-center gap-1`}>
+                  <span>{style.icon}</span>
+                  <span>シオン</span>
+                </p>
+                <p className="text-xs text-gray-400">Forest Sage</p>
               </div>
             </div>
-          )}
+
+            {/* 吹き出し */}
+            <div className="flex-1">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 relative">
+                <div className="hidden md:block absolute left-[-12px] top-8 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-12 border-r-white/10" />
+                <p className="text-lg leading-relaxed">{advice.message}</p>
+              </div>
+              
+              {/* 簡易サマリー */}
+              {dayResult && (
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+                  <div className="bg-black/20 rounded-lg p-2">
+                    <p className="text-gray-400 text-xs">来客</p>
+                    <p className="font-bold">{dayResult.customers}人</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-2">
+                    <p className="text-gray-400 text-xs">売上</p>
+                    <p className="font-bold text-green-400">{dayResult.sales.toLocaleString()}G</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-2">
+                    <p className="text-gray-400 text-xs">利益</p>
+                    <p className={`font-bold ${dayResult.profit >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                      {dayResult.profit >= 0 ? '+' : ''}{dayResult.profit.toLocaleString()}G
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleFinish}
+            className="group relative px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl font-bold text-xl shadow-2xl hover:scale-105 transition-all"
+          >
+            <span className="flex items-center gap-3">
+              <span>🌅</span>
+              <span>翌日へ</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})()}
+
       </main>
 
       {/* フッター */}
