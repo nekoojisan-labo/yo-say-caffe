@@ -195,3 +195,228 @@ button:focus-visible {
   filter: brightness(1.2) drop-shadow(0 0 12px rgba(236, 72, 153, 0.8));
   transform: scale(1.05);
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ベーススタイル */
+:root {
+  --color-fairy-pink: #FFB6C1;
+  --color-fairy-lavender: #E6E6FA;
+  --color-fairy-mint: #98FF98;
+  --color-fairy-gold: #FFD700;
+  --color-fairy-heart: #FF6B6B;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: "游ゴシック", "Yu Gothic", "Rounded Mplus 1c", sans-serif;
+  background-color: #FFF8FA;
+  color: #4A4A4A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* スクロールバースタイル */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFE4E9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFB6C1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF8FA3;
+}
+
+/* ボタンのクリック時のアウトライン無効化 */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-fairy-pink);
+  outline-offset: 2px;
+}
+
+/* 選択時のハイライト色 */
+::selection {
+  background-color: var(--color-fairy-pink);
+  color: white;
+}
+
+/* アニメーションユーティリティ */
+@layer utilities {
+  .animate-bounce-soft {
+    animation: bounce-soft 2s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-heart-beat {
+    animation: heart-beat 1s ease-in-out infinite;
+  }
+}
+
+@keyframes bounce-soft {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 182, 193, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(255, 182, 193, 0.8);
+  }
+}
+
+@keyframes heart-beat {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* 画面遷移アニメーション */
+.screen-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.screen-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.screen-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.screen-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Social Game UI Utilities */
+.social-top-bar-clip {
+  clip-path: polygon(0 0, 100% 0, 95% 100%, 10% 100%);
+}
+
+.social-currency-clip {
+  clip-path: polygon(15% 0, 100% 0, 85% 100%, 0% 100%);
+}
+
+.social-nav-clip {
+  background: linear-gradient(to bottom, rgba(26, 11, 46, 0.9) 0%, rgba(13, 5, 23, 0.95) 100%);
+  border-top: 2px solid rgba(139, 92, 246, 0.5);
+}
+
+.social-nav-item-clip {
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.text-stroke-primary {
+  -webkit-text-stroke: 1px rgba(139, 92, 246, 0.5);
+}
+
+.social-glow {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
+}
+
+.social-glow-pink {
+  filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+}
+
+.social-btn-hover:hover {
+  filter: brightness(1.2) drop-shadow(0 0 12px rgba(236, 72, 153, 0.8));
+  transform: scale(1.05);
+}
+
+/* 照覧の魔法用アニメーション */
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 15s linear infinite;
+}

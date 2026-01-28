@@ -1,61 +1,157 @@
-import { useGameStore } from '@/store';
-import { GameLayout } from '../../layout/GameLayout';
+import { useGameStore, useInventoryStore } from '@/store';
+import { ASSETS } from '@/utils/assets';
 
 export function HomeScreen() {
-    const { setScreen } = useGameStore();
+  const { day, money, reputation, shopRank, glamor, setScreen } = useGameStore();
+  const { inventory } = useInventoryStore();
 
-    return (
-        <GameLayout showCharacter={true}>
-            {/* サイドコンテンツ (Banners/Events) - ホーム画面固有 */}
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 space-y-4">
-                <div className="relative group cursor-pointer social-glow-pink">
-                    <div className="w-64 h-24 bg-gradient-to-r from-purple-700 to-pink-500 rounded-lg p-3 border-2 border-white/30 shadow-2xl relative overflow-hidden group-hover:scale-105 transition-all">
-                        <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors" />
-                        <div className="relative z-10 flex flex-col justify-center h-full">
-                            <span className="text-xs font-black italic tracking-widest text-pink-200">CAMPAIGN</span>
-                            <h3 className="text-xl font-black italic tracking-tighter text-white">LINEスタンプ登場！</h3>
-                        </div>
-                        <div className="absolute top-2 right-2 flex gap-1">
-                            {[1, 2, 3].map(i => <div key={i} className="w-2 h-2 bg-white/40 rounded-full" />)}
-                        </div>
-                    </div>
-                </div>
+  const totalStock = Object.values(inventory).reduce((sum, item) => sum + item.stock, 0);
+  const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+  const dayOfWeek = dayNames[(day - 1) % 7];
 
-                <div className="relative group cursor-pointer overflow-hidden rounded-lg border-2 border-cyan-400/50 social-glow">
-                    <div className="w-64 h-20 bg-[#0d0517] p-2 flex items-center gap-3">
-                        <div className="w-14 h-14 bg-gray-800 rounded-md overflow-hidden animate-pulse" />
-                        <div>
-                            <span className="text-[10px] font-black text-cyan-400 italic">NEWS</span>
-                            <p className="text-xs font-bold leading-none">新メニュー「魅惑のベリーティー」追加！</p>
-                        </div>
-                    </div>
-                </div>
+  // 幻装レベルに応じた主人公画像
+  const mcImage = ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default;
+
+  return (
+    <div className="w-full h-full flex flex-col bg-[#0d0517] text-white overflow-hidden relative">
+      {/* 背景グラデーション */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-purple-900/30 via-transparent to-[#0d0517]" />
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* ヘッダー */}
+      <header className="relative z-20 p-4 bg-black/40 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-black bg-gradient-to-r from-pink-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent">
+              妖精カフェ物語
+            </h1>
+            <p className="text-xs text-gray-400">恋愛×経営シミュレーション</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-xs text-gray-400">所持金</p>
+              <p className="text-xl font-bold text-yellow-400">{money.toLocaleString()} G</p>
             </div>
+            <button
+              onClick={() => setScreen('settings')}
+              className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              ⚙️
+            </button>
+          </div>
+        </div>
+      </header>
 
-            <div className="absolute right-6 top-[20%] z-20 flex flex-col gap-4">
-                <div className="w-16 h-16 bg-black/40 backdrop-blur-md rounded-full border border-pink-400/50 flex flex-col items-center justify-center cursor-pointer hover:bg-pink-500/20 transition-all social-btn-hover">
-                    <span className="text-2xl">🎁</span>
-                    <span className="text-[8px] font-bold">10</span>
-                </div>
+      {/* メインエリア */}
+      <main className="relative z-10 flex-1 flex overflow-hidden">
+        {/* 左側：ステータス＆メニュー */}
+        <div className="w-full md:w-1/2 lg:w-2/5 p-4 flex flex-col justify-between overflow-y-auto">
+          {/* ステータスカード */}
+          <div className="space-y-3 mb-6">
+            <div className="grid grid-cols-2 gap-3">
+              <StatusCard icon="📅" label="日付" value={`${day}日目`} sub={`${dayOfWeek}曜日`} />
+              <StatusCard icon="⭐" label="ランク" value={shopRank} sub={`評判 ${reputation}`} />
+              <StatusCard icon="✨" label="幻装" value={`Lv.${glamor.level}`} sub={`安定度 ${glamor.stability}%`} />
+              <StatusCard icon="📦" label="在庫" value={`${totalStock}個`} color="text-cyan-400" />
             </div>
+          </div>
 
-            {/* ホーム中央のボタン (営業開始) */}
-            <div className="flex flex-col items-center justify-center gap-8 mb-20">
-                <div className="relative group overflow-hidden rounded-full p-[2px]">
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-600 animate-spin-slow opacity-75 group-hover:opacity-100 transition-opacity" />
-                    <button
-                        onClick={() => setScreen('cafe')}
-                        className="relative bg-[#0d0517] rounded-full px-12 py-5 font-black text-2xl italic tracking-tighter flex items-center gap-4 hover:bg-transparent transition-colors"
-                    >
-                        <span className="animate-pulse">☕</span>
-                        <span>CAFE OPEN <span className="text-cyan-400">&rarr;</span></span>
-                    </button>
-                </div>
+          {/* メインボタン */}
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <button
+              onClick={() => setScreen('cafe')}
+              className="group relative w-full max-w-xs"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity" />
+              <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 px-8 py-5 rounded-2xl font-black text-xl shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-3">
+                <span className="text-2xl">☕</span>
+                <span>営業開始</span>
+              </div>
+            </button>
+            <p className="text-gray-400 text-sm text-center">
+              仕入れをして、カフェを営業しよう！
+            </p>
+          </div>
 
-                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-center animate-slide-up">
-                    <p className="text-pink-300 font-bold text-sm">Now Event: <span className="text-white">妖精たちのティーパーティー</span></p>
-                </div>
-            </div>
-        </GameLayout>
-    );
+          {/* クイックメニュー */}
+          <div className="grid grid-cols-3 gap-2">
+            <QuickButton icon="📝" label="開発" onClick={() => setScreen('menu-dev')} />
+            <QuickButton icon="🏠" label="内装" onClick={() => setScreen('interior')} />
+            <QuickButton icon="📖" label="図鑑" onClick={() => setScreen('ikemen-list')} />
+            <QuickButton icon="👤" label="主人公" onClick={() => setScreen('protagonist')} />
+            <QuickButton icon="💾" label="セーブ" onClick={() => setScreen('save')} />
+            <QuickButton icon="📊" label="経営" onClick={() => setScreen('management')} />
+          </div>
+        </div>
+
+        {/* 右側：主人公キャラクター */}
+        <div className="hidden md:flex md:w-1/2 lg:w-3/5 items-end justify-center relative">
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#0d0517]/80 z-10 pointer-events-none" />
+          <img
+            src={mcImage}
+            alt="主人公"
+            className="h-[90%] object-contain object-bottom drop-shadow-2xl"
+            style={{ filter: 'drop-shadow(0 0 30px rgba(168, 85, 247, 0.3))' }}
+          />
+        </div>
+      </main>
+
+      {/* フッター */}
+      <footer className="relative z-20 p-3 border-t border-white/10 bg-black/40 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto text-center">
+          <p className="text-sm text-gray-400">
+            💡 イケメン妖精たちと仲良くなって、カフェを繁盛させよう！
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function StatusCard({
+  icon,
+  label,
+  value,
+  sub,
+  color = 'text-white',
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+}) {
+  return (
+    <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+      <div className="flex items-center gap-2 mb-1">
+        <span>{icon}</span>
+        <span className="text-xs text-gray-400">{label}</span>
+      </div>
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-500">{sub}</p>}
+    </div>
+  );
+}
+
+function QuickButton({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-black/40 hover:bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10 hover:border-white/20 transition-all flex flex-col items-center gap-1 group"
+    >
+      <span className="text-xl group-hover:scale-110 transition-transform">{icon}</span>
+      <span className="text-xs text-gray-400 group-hover:text-white transition-colors">{label}</span>
+    </button>
+  );
 }

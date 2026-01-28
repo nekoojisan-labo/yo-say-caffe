@@ -1,3 +1,4 @@
+import { ASSETS } from '@/utils/assets';
 import { create } from 'zustand';
 import type { GameState, ScreenType, ShopRank, DayPhase, GameFlags, FinancialStats, DayResult, EventPayload, ManagementState, ManagementDecision, RomanceFocus } from '@/types';
 import { CharacterId, CHARACTER_LIST } from '@/game/characters';
@@ -51,6 +52,11 @@ interface GameStore extends GameState {
 
   // ゲーム状態を設定（ロード用）
   setGameState: (state: Partial<GameState>) => void;
+
+  // interface GameStore に追加
+unlockEncyclopedia: (charId: CharacterId) => void;
+addAffection: (charId: CharacterId, amount: number) => void;
+
 }
 
 const initialKPI: FinancialStats = {
@@ -95,9 +101,10 @@ const initialState: GameState = {
   protagonistVisual: {
     setId: 'mc_L3',
     parts: {
-      full: '' // Initially empty, will be resolved on first use or set manually
+      full: ASSETS.mainChara.lv3  // ← ここを修正（空文字から実際のパスへ）
     }
   },
+
   affection: initialAffection,
   encyclopediaUnlocked: initialEncyclopedia,
   lastAppearedDay: initialAppearance,
@@ -289,4 +296,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       [charId]: Math.max(0, (state.romanceTickets[charId] || 0) - 1)
     }
   })),
+
+  unlockEncyclopedia: (charId) =>
+  set((state) => ({
+    encyclopediaUnlocked: {
+      ...state.encyclopediaUnlocked,
+      [charId]: true,
+    },
+  })),
+
+addAffection: (charId, amount) =>
+  set((state) => ({
+    affection: {
+      ...state.affection,
+      [charId]: Math.min(9999, (state.affection[charId] || 0) + amount),
+    },
+  })),
+
 }));
