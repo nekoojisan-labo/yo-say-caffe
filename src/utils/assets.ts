@@ -1,52 +1,78 @@
-import opening from '@/assets/images/characters/オープニング画面.jpg';
-import logoJa from '@/assets/images/logo_ja.png';
-import logoEn from '@/assets/images/logo_en.png';
-import subtitle from '@/assets/images/subtitle.png';
-import aoi from '@/assets/images/characters/aoi.jpg';
-import kagerou from '@/assets/images/characters/kagerou.jpg';
-import shion from '@/assets/images/characters/shion.jpg';
-import soma from '@/assets/images/characters/souma.jpg';
-import haruto from '@/assets/images/characters/haruto.jpg';
-import mizuki from '@/assets/images/characters/mizuki.jpg';
-import yukito from '@/assets/images/characters/yukito.jpg';
-import riku from '@/assets/images/characters/riku.jpg';
-import lucia from '@/assets/images/characters/lucia.jpg';
-import ren from '@/assets/images/characters/ren.jpg';
+// 背景画像
+import opening from '@/assets/images/characters/opening.webp';
+import titleBg from '@/assets/images/title_bg.webp';
+import cafeMorning from '@/assets/images/cafemorning.webp';
+import cafeEvening from '@/assets/images/cafeevning.webp';
+import cafeNight from '@/assets/images/cafenight.webp';
+import shiire from '@/assets/images/shiire.webp';
+import kekka from '@/assets/images/kekka.webp';
 
-// Main Character
-import mcL0 from '@/assets/images/characters/mainchara/mc_L0.png';
-import mcL1 from '@/assets/images/characters/mainchara/mc_L1.png';
-import mcL2 from '@/assets/images/characters/mainchara/mc_L2.png';
-import mcL3 from '@/assets/images/characters/mainchara/mc_L3.png';
-import mcL4 from '@/assets/images/characters/mainchara/mc_L4.png';
-import mcL5 from '@/assets/images/characters/mainchara/mc_L5.png';
-import mcL6 from '@/assets/images/characters/mainchara/mc_L6.png';
+// ロゴ
+import logoJa from '@/assets/images/logo_ja.webp';
+import logoEn from '@/assets/images/logo_en.webp';
+import subtitle from '@/assets/images/subtitle.webp';
+
+// キャラクター
+import aoi from '@/assets/images/characters/aoi.webp';
+import kagerou from '@/assets/images/characters/kagerou.webp';
+import shion from '@/assets/images/characters/shion.webp';
+import soma from '@/assets/images/characters/souma.webp';
+import haruto from '@/assets/images/characters/haruto.webp';
+import mizuki from '@/assets/images/characters/mizuki.webp';
+import yukito from '@/assets/images/characters/yukito.webp';
+import riku from '@/assets/images/characters/riku.webp';
+import lucia from '@/assets/images/characters/lucia.webp';
+import ren from '@/assets/images/characters/ren.webp';
+
+// 主人公（幻装レベル別）
+import mcL0 from '@/assets/images/characters/mainchara/mc_L0.webp';
+import mcL1 from '@/assets/images/characters/mainchara/mc_L1.webp';
+import mcL2 from '@/assets/images/characters/mainchara/mc_L2.webp';
+import mcL3 from '@/assets/images/characters/mainchara/mc_L3.webp';
+import mcL4 from '@/assets/images/characters/mainchara/mc_L4.webp';
+import mcL5 from '@/assets/images/characters/mainchara/mc_L5.webp';
+import mcL6 from '@/assets/images/characters/mainchara/mc_L6.webp';
 
 export const ASSETS = {
-    opening,
-    logoJa,
-    logoEn,
-    subtitle,
-    characters: {
-        aoi,
-        kagerou,
-        shion,
-        souma: soma,
-        haruto,
-        mizuki,
-        yukito,
-        riku,
-        lucia,
-        ren,
-    } as Record<string, string>,
-    mainChara: {
-        default: mcL3,
-        lv0: mcL0,
-        lv1: mcL1,
-        lv2: mcL2,
-        lv3: mcL3,
-        lv4: mcL4,
-        lv5: mcL5,
-        lv6: mcL6,
-    } as Record<string, string>,
+  // 背景
+  opening,
+  titleBg,
+  backgrounds: {
+    cafeMorning,
+    cafeEvening,
+    cafeNight,
+    shiire,
+    kekka,
+  },
+
+  // ロゴ
+  logoJa,
+  logoEn,
+  subtitle,
+
+  // キャラクター
+  characters: {
+    aoi,
+    kagerou,
+    shion,
+    souma: soma,
+    haruto,
+    mizuki,
+    yukito,
+    riku,
+    lucia,
+    ren,
+  } as Record<string, string>,
+
+  // 主人公
+  mainChara: {
+    default: mcL3,
+    lv0: mcL0,
+    lv1: mcL1,
+    lv2: mcL2,
+    lv3: mcL3,
+    lv4: mcL4,
+    lv5: mcL5,
+    lv6: mcL6,
+  } as Record<string, string>,
 };
