@@ -1,6 +1,5 @@
 // 背景画像
 import opening from '@/assets/images/characters/opening.webp';
-import titleBg from '@/assets/images/title_bg.webp';
 import cafeMorning from '@/assets/images/cafemorning.webp';
 import cafeEvening from '@/assets/images/cafeevning.webp';
 import cafeNight from '@/assets/images/cafenight.webp';
