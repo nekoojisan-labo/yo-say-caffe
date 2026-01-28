@@ -17,7 +17,7 @@ interface DayResultData {
 export function DailyBusinessScreen() {
   const { 
     day, money, addMoney, advanceDay, setScreen,
-    encyclopediaUnlocked, affection
+    affection
   } = useGameStore();
   const { getStock, consumeStock, confirmOrders, processDayChange } = useInventoryStore();
 
@@ -107,7 +107,7 @@ export function DailyBusinessScreen() {
 const getShionAdvice = (): { message: string; mood: 'happy' | 'concerned' | 'neutral' | 'excited' } => {
   if (!dayResult) return { message: '', mood: 'neutral' };
 
-  const { customers, sales, cost, profit, ikemenVisits } = dayResult;
+  const { customers, sales, profit, ikemenVisits } = dayResult;
   const profitMargin = sales > 0 ? (profit / sales) * 100 : 0;
   const currentMoney = money;
   
@@ -485,7 +485,7 @@ const getShionAdvice = (): { message: string; mood: 'happy' | 'concerned' | 'neu
               </div>
             </div>
           )}
-
+        </div>
           {/* アドバイスパート（シオンの画像付き） */}
 {phase === 'advice' && (() => {
   const advice = getShionAdvice();
