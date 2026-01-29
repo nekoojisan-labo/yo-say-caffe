@@ -44,11 +44,11 @@ const SEAT_POSITIONS = [
   { x: 60, y: 72 },
 ];
 
-const SPRITE_WIDTH = 128;
-const SPRITE_HEIGHT = 64;
-const CHAR_COLS = 8;
-const FRAMES_PER_DIR = 3;
-const DIRECTIONS = 4;
+// スプライトシートの設定（画像解析結果）
+const SPRITE_WIDTH = 128;    // 1キャラの横幅
+const SPRITE_HEIGHT = 128;   // 1キャラの縦幅
+const CHAR_COLS = 8;         // 横に8キャラ
+const TOTAL_ROWS = 6;        // 縦に6行
 
 export function DailyBusinessScreen() {
   const { day, money, addMoney, advanceDay, setScreen, affection } = useGameStore();
@@ -63,9 +63,9 @@ export function DailyBusinessScreen() {
   const [seats, setSeats] = useState<(number | null)[]>(Array(8).fill(null));
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [globalAnimFrame, setGlobalAnimFrame] = useState(0);
+  const [walkFrame, setWalkFrame] = useState(false);
 
-  // useRef で売上等を管理（レンダリング中のsetState回避）
+  // useRef で売上等を管理
   const salesRef = useRef(0);
   const costRef = useRef(0);
   const customerCountRef = useRef(0);
@@ -74,16 +74,16 @@ export function DailyBusinessScreen() {
 
   const unlockedMenus = MENU_DATA.filter((m) => m.unlocked);
 
-  // 表示用のstate（定期的にrefから同期）
+  // 表示用のstate
   const [displaySales, setDisplaySales] = useState(0);
   const [displayCustomers, setDisplayCustomers] = useState(0);
   const [displayIkemen, setDisplayIkemen] = useState(0);
 
-  // グローバルアニメーションフレーム更新
+  // 歩行アニメーション切り替え
   useEffect(() => {
     const interval = setInterval(() => {
-      setGlobalAnimFrame(prev => (prev + 1) % FRAMES_PER_DIR);
-    }, 200);
+      setWalkFrame(prev => !prev);
+    }, 250);
     return () => clearInterval(interval);
   }, []);
 
@@ -205,7 +205,6 @@ export function DailyBusinessScreen() {
         return next;
       });
 
-      // 客の来店判定
       const timeOfDay = getTimeOfDay(currentTime);
       let spawnChance = 0.03;
       if (timeOfDay === 'lunch') spawnChance = 0.08;
@@ -223,7 +222,6 @@ export function DailyBusinessScreen() {
         }
       }
 
-      // 客の状態更新
       setCustomers(prev => {
         return prev.map(customer => {
           if (customer.status === 'gone') return customer;
@@ -233,7 +231,6 @@ export function DailyBusinessScreen() {
           if (customer.status === 'entering') {
             updated.x = Math.min(customer.x + 2 * speed, customer.targetX);
             updated.direction = 'right';
-            updated.animFrame = globalAnimFrame;
             if (updated.x >= customer.targetX) {
               updated.status = 'seated';
               updated.timer = 0;
@@ -243,7 +240,6 @@ export function DailyBusinessScreen() {
 
           if (customer.status === 'seated') {
             updated.timer += speed;
-            updated.animFrame = 0;
             if (updated.timer > 30) {
               const availableMenus = unlockedMenus.filter(m => getStock(m.id) > 0);
               if (availableMenus.length > 0) {
@@ -255,7 +251,6 @@ export function DailyBusinessScreen() {
                   updated.orderPrice = menu.price;
                   updated.orderCost = menu.cost;
                   
-                  // refで売上を更新
                   salesRef.current += menu.price;
                   costRef.current += menu.cost;
                   customerCountRef.current += 1;
@@ -275,7 +270,6 @@ export function DailyBusinessScreen() {
 
           if (customer.status === 'eating') {
             updated.timer += speed;
-            updated.animFrame = Math.floor(updated.timer / 20) % FRAMES_PER_DIR;
             if (updated.timer > 60 + Math.random() * 30) {
               updated.status = 'leaving';
               updated.timer = 0;
@@ -285,7 +279,6 @@ export function DailyBusinessScreen() {
           if (customer.status === 'leaving') {
             updated.x += 3 * speed;
             updated.direction = 'right';
-            updated.animFrame = globalAnimFrame;
             if (updated.x > 110) {
               updated.status = 'gone';
               setSeats(prevSeats => {
@@ -304,7 +297,7 @@ export function DailyBusinessScreen() {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock, globalAnimFrame, finishDay]);
+  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock, finishDay]);
 
   const handleToAdvice = () => {
     setPhase('advice');
@@ -369,21 +362,44 @@ export function DailyBusinessScreen() {
     const isIkemen = customer.type === 'ikemen';
     const char = isIkemen && customer.ikemenId ? CHARACTERS[customer.ikemenId] : null;
     
-    const directionMap: Record<string, number> = { down: 0, left: 1, right: 2, up: 3 };
-    const dirIndex = directionMap[customer.direction];
-    const frameIndex = customer.animFrame % FRAMES_PER_DIR;
+    // この画像の構成:
+    // Row 0: 下向き（正面）静止
+    // Row 1: 下向き（正面）歩き
+    // Row 2: 上向き（後姿）静止
+    // Row 3: 上向き（後姿）歩き
+    // Row 4: 横向き 静止
+    // Row 5: 横向き 歩き
+    
+    let row = 0;
+    const isWalking = customer.status === 'entering' || customer.status === 'leaving';
+    
+    if (customer.direction === 'down') {
+      row = isWalking && walkFrame ? 1 : 0;
+    } else if (customer.direction === 'up') {
+      row = isWalking && walkFrame ? 3 : 2;
+    } else {
+      // left or right
+      row = isWalking && walkFrame ? 5 : 4;
+    }
+    
+    // キャラタイプ（0-7の8種類）
     const charType = customer.dotType % CHAR_COLS;
     
+    // スプライト位置計算
     const spriteX = charType * SPRITE_WIDTH;
-    const spriteY = (dirIndex * FRAMES_PER_DIR + frameIndex) * SPRITE_HEIGHT;
+    const spriteY = row * SPRITE_HEIGHT;
 
-    const displayScale = 0.8;
+    // 表示サイズ（縮小して表示）
+    const displayScale = 0.5;
     const displayWidth = SPRITE_WIDTH * displayScale;
     const displayHeight = SPRITE_HEIGHT * displayScale;
+    
+    // 左向きの場合は反転
+    const flipX = customer.direction === 'left';
 
     return (
       <div
-        className={`absolute transition-all duration-75 ${customer.status === 'gone' ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute transition-all duration-100 ${customer.status === 'gone' ? 'opacity-0' : 'opacity-100'}`}
         style={{
           left: `${customer.x}%`,
           top: `${SEAT_POSITIONS[customer.seatIndex]?.y || 70}%`,
@@ -398,8 +414,9 @@ export function DailyBusinessScreen() {
               height: displayHeight,
               backgroundImage: `url(${ASSETS.dotCustomers})`,
               backgroundPosition: `-${spriteX * displayScale}px -${spriteY * displayScale}px`,
-              backgroundSize: `${SPRITE_WIDTH * CHAR_COLS * displayScale}px ${SPRITE_HEIGHT * DIRECTIONS * FRAMES_PER_DIR * displayScale}px`,
+              backgroundSize: `${SPRITE_WIDTH * CHAR_COLS * displayScale}px ${SPRITE_HEIGHT * TOTAL_ROWS * displayScale}px`,
               imageRendering: 'pixelated',
+              transform: flipX ? 'scaleX(-1)' : 'none',
             }}
           />
           
@@ -460,6 +477,7 @@ export function DailyBusinessScreen() {
       <main className="relative z-10 flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto">
           
+          {/* 仕入れパート */}
           {phase === 'procurement' && (
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30">
@@ -520,6 +538,7 @@ export function DailyBusinessScreen() {
             </div>
           )}
 
+          {/* 営業開始前 */}
           {phase === 'operation' && (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <div className="text-center space-y-8">
@@ -535,6 +554,7 @@ export function DailyBusinessScreen() {
             </div>
           )}
 
+          {/* 営業中 */}
           {phase === 'running' && (
             <div className="space-y-4">
               <div className="grid grid-cols-4 gap-3">
@@ -601,6 +621,7 @@ export function DailyBusinessScreen() {
             </div>
           )}
 
+          {/* 結果パート */}
           {phase === 'result' && dayResult && (
             <div className="space-y-6">
               <div className="text-center py-4">
@@ -647,6 +668,7 @@ export function DailyBusinessScreen() {
             </div>
           )}
 
+          {/* アドバイスパート */}
           {phase === 'advice' && (() => {
             const advice = getShionAdvice();
             const moodStyles = {
