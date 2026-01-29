@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameStore } from '@/store';
 import { ASSETS } from '@/utils/assets';
 import { CHARACTERS, CharacterId } from '@/game/characters';
-import type { ScenarioEvent, ChoiceOption } from '@/types';
+import type { ScenarioEvent, ChoiceOption, ScenarioEventEffects, ChoiceEffects } from '@/types';
 
 // テキスト表示速度（ミリ秒/文字）
 const TEXT_SPEEDS = {
@@ -41,7 +41,7 @@ export function ScenarioScreen() {
   const [isFastForward, setIsFastForward] = useState(false);
   const [textSpeed, setTextSpeed] = useState<'slow' | 'normal' | 'fast' | 'instant'>('normal');
   const [showStatus, setShowStatus] = useState(false);
-  
+
   // タイマー参照
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,7 +118,7 @@ export function ScenarioScreen() {
   }, [currentScenario]);
 
   // 効果を適用
-  const applyEffects = useCallback((effects?: ScenarioEvent['effects']) => {
+  const applyEffects = useCallback((effects?: ScenarioEventEffects) => {
     if (!effects) return;
 
     if (effects.money) {
@@ -128,15 +128,21 @@ export function ScenarioScreen() {
       updateReputation(effects.reputation);
     }
     if (effects.glamor) {
-      updateGlamor(effects.glamor);
+      updateGlamor({ points: glamor.points + effects.glamor });
     }
     if (effects.flag) {
       updateScenarioFlags({ [effects.flag.key]: effects.flag.value });
     }
-  }, [addMoney, updateReputation, updateGlamor, updateScenarioFlags]);
+    if (effects.flag2) {
+      updateScenarioFlags({ [effects.flag2.key]: effects.flag2.value });
+    }
+    if (effects.flag3) {
+      updateScenarioFlags({ [effects.flag3.key]: effects.flag3.value });
+    }
+  }, [addMoney, updateReputation, updateGlamor, updateScenarioFlags, glamor.points]);
 
   // 選択肢の効果を適用
-  const applyChoiceEffects = useCallback((effects?: ChoiceOption['effects']) => {
+  const applyChoiceEffects = useCallback((effects?: ChoiceEffects) => {
     if (!effects) return;
 
     if (effects.money) {
@@ -146,7 +152,7 @@ export function ScenarioScreen() {
       updateReputation(effects.reputation);
     }
     if (effects.glamor) {
-      updateGlamor(effects.glamor);
+      updateGlamor({ points: glamor.points + effects.glamor });
     }
     if (effects.affection) {
       addAffection(effects.affection.characterId, effects.affection.amount);
@@ -154,7 +160,7 @@ export function ScenarioScreen() {
     if (effects.flag) {
       updateScenarioFlags({ [effects.flag.key]: effects.flag.value });
     }
-  }, [addMoney, updateReputation, updateGlamor, addAffection, updateScenarioFlags]);
+  }, [addMoney, updateReputation, updateGlamor, addAffection, updateScenarioFlags, glamor.points]);
 
   // 次のイベントへ進む
   const handleNext = useCallback(() => {
@@ -217,7 +223,7 @@ export function ScenarioScreen() {
 
     for (let i = currentEventIndex; i < currentScenario.events.length; i++) {
       const event = currentScenario.events[i];
-      
+
       // 効果を適用（スキップ中も）
       if (event.effects) {
         applyEffects(event.effects);
@@ -237,19 +243,15 @@ export function ScenarioScreen() {
 
   // シナリオ背景を取得
   const getScenarioBackground = (): string => {
+    const bgAssets = ASSETS.backgrounds as Record<string, string> | undefined;
+
     // シナリオに背景指定がある場合
-    if (currentScenario?.background) {
-      const bgAssets = ASSETS.backgrounds as Record<string, string> | undefined;
-      if (bgAssets && bgAssets[currentScenario.background]) {
-        return `url(${bgAssets[currentScenario.background]})`;
-      }
+    if (currentScenario?.background && bgAssets?.[currentScenario.background]) {
+      return `url(${bgAssets[currentScenario.background]})`;
     }
     // イベントに背景指定がある場合
-    if (currentEvent?.background) {
-      const bgAssets = ASSETS.backgrounds as Record<string, string> | undefined;
-      if (bgAssets && bgAssets[currentEvent.background]) {
-        return `url(${bgAssets[currentEvent.background]})`;
-      }
+    if (currentEvent?.background && bgAssets?.[currentEvent.background]) {
+      return `url(${bgAssets[currentEvent.background]})`;
     }
     // デフォルト背景
     return 'linear-gradient(to bottom, #1a1a2e, #16213e)';
@@ -258,7 +260,7 @@ export function ScenarioScreen() {
   // キャラクター画像を取得
   const getCharacterImage = (speaker?: string): string | null => {
     if (!speaker || speaker === 'protagonist' || speaker === 'narration') return null;
-    
+
     const charAssets = ASSETS.characters as Record<string, string> | undefined;
     if (charAssets && charAssets[speaker]) {
       return charAssets[speaker];
@@ -274,7 +276,7 @@ export function ScenarioScreen() {
     if (currentEvent.speaker === 'narration') return '';
     if (currentEvent.speaker) {
       const char = CHARACTERS[currentEvent.speaker as CharacterId];
-      return char?.name || currentEvent.speaker;
+      return char?.name || String(currentEvent.speaker);
     }
     return '';
   };
@@ -322,7 +324,7 @@ export function ScenarioScreen() {
       }}
     >
       {/* 背景オーバーレイ */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5))',
@@ -396,7 +398,7 @@ export function ScenarioScreen() {
 
       {/* ステータスパネル */}
       {showStatus && (
-        <div 
+        <div
           className="relative mx-4 mt-2 p-3 rounded-lg animate-fade-in"
           style={{
             background: 'rgba(0,0,0,0.8)',
@@ -424,7 +426,7 @@ export function ScenarioScreen() {
           {/* 主要フラグ表示（デバッグ用） */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-2 pt-2 border-t border-white/20 text-xs text-white/50">
-              <div>フラグ: {Object.entries(scenarioFlags).filter(([_, v]) => v === true).map(([k]) => k).join(', ') || 'なし'}</div>
+              <div>フラグ: {Object.entries(scenarioFlags).filter(([, v]) => v === true).map(([k]) => k).join(', ') || 'なし'}</div>
             </div>
           )}
         </div>

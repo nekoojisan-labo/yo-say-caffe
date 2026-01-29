@@ -182,9 +182,11 @@ export interface GameState {
   gameMode: 'management' | 'romance' | 'menu';
   reputation: number;
   
+// GameState の glamor 部分を以下に変更
   glamor: {
     level: number;
     points: number;
+    stability?: number;  // 追加
   };
   
   protagonistVisual: {
