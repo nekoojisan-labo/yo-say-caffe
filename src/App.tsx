@@ -12,6 +12,8 @@ import { ManagementSimScreen } from '@/components/common/screens/ManagementSimSc
 import { MenuDevScreen } from '@/components/common/screens/MenuDevScreen';
 import { InteriorScreen } from '@/components/common/screens/InteriorScreen';
 import { DailyBusinessScreen } from '@/components/common/screens/DailyBusinessScreen';
+// 新規追加
+import { ScenarioScreen } from '@/components/common/screens/ScenarioScreen';
 
 // 画面プレースホルダーコンポーネント
 function PlaceholderScreen({ name, color }: { name: string; color: string }) {
@@ -42,7 +44,7 @@ function PlaceholderScreen({ name, color }: { name: string; color: string }) {
 const SCREEN_COMPONENTS: Record<ScreenType, React.FC> = {
   title: TitleScreen,
   home: HomeScreen,
-  cafe: DailyBusinessScreen, // ← 変更
+  cafe: DailyBusinessScreen,
   order: () => <PlaceholderScreen name="発注管理" color="#0d0517" />,
   management: ManagementSimScreen,
   'menu-dev': MenuDevScreen,
@@ -55,6 +57,10 @@ const SCREEN_COMPONENTS: Record<ScreenType, React.FC> = {
   gallery: () => <PlaceholderScreen name="ギャラリー" color="#0d0517" />,
   save: SaveScreen,
   settings: SettingsScreen,
+  // 新規追加
+  scenario: ScenarioScreen,
+  tutorial: () => <PlaceholderScreen name="チュートリアル" color="#0d0517" />,
+  ending: () => <PlaceholderScreen name="エンディング" color="#0d0517" />,
 };
 
 function App() {
