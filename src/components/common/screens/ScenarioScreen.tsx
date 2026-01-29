@@ -40,6 +40,7 @@ export function ScenarioScreen() {
   const [isAutoMode, setIsAutoMode] = useState(false);
   const [isFastForward, setIsFastForward] = useState(false);
   const [textSpeed, setTextSpeed] = useState<'slow' | 'normal' | 'fast' | 'instant'>('normal');
+  const [showStatus, setShowStatus] = useState(false);
   
   // タイマー参照
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -126,10 +127,13 @@ export function ScenarioScreen() {
     if (effects.reputation) {
       updateReputation(effects.reputation);
     }
+    if (effects.glamor) {
+      updateGlamor(effects.glamor);
+    }
     if (effects.flag) {
       updateScenarioFlags({ [effects.flag.key]: effects.flag.value });
     }
-  }, [addMoney, updateReputation, updateScenarioFlags]);
+  }, [addMoney, updateReputation, updateGlamor, updateScenarioFlags]);
 
   // 選択肢の効果を適用
   const applyChoiceEffects = useCallback((effects?: ChoiceOption['effects']) => {
@@ -141,13 +145,16 @@ export function ScenarioScreen() {
     if (effects.reputation) {
       updateReputation(effects.reputation);
     }
+    if (effects.glamor) {
+      updateGlamor(effects.glamor);
+    }
     if (effects.affection) {
       addAffection(effects.affection.characterId, effects.affection.amount);
     }
     if (effects.flag) {
       updateScenarioFlags({ [effects.flag.key]: effects.flag.value });
     }
-  }, [addMoney, updateReputation, addAffection, updateScenarioFlags]);
+  }, [addMoney, updateReputation, updateGlamor, addAffection, updateScenarioFlags]);
 
   // 次のイベントへ進む
   const handleNext = useCallback(() => {
@@ -228,12 +235,35 @@ export function ScenarioScreen() {
     completeScenario(currentScenario.id);
   }, [currentScenario, currentEventIndex, applyEffects, setCurrentEventIndex, completeScenario]);
 
+  // シナリオ背景を取得
+  const getScenarioBackground = (): string => {
+    // シナリオに背景指定がある場合
+    if (currentScenario?.background) {
+      const bgAssets = ASSETS.backgrounds as Record<string, string> | undefined;
+      if (bgAssets && bgAssets[currentScenario.background]) {
+        return `url(${bgAssets[currentScenario.background]})`;
+      }
+    }
+    // イベントに背景指定がある場合
+    if (currentEvent?.background) {
+      const bgAssets = ASSETS.backgrounds as Record<string, string> | undefined;
+      if (bgAssets && bgAssets[currentEvent.background]) {
+        return `url(${bgAssets[currentEvent.background]})`;
+      }
+    }
+    // デフォルト背景
+    return 'linear-gradient(to bottom, #1a1a2e, #16213e)';
+  };
+
   // キャラクター画像を取得
   const getCharacterImage = (speaker?: string): string | null => {
     if (!speaker || speaker === 'protagonist' || speaker === 'narration') return null;
     
-    const charAssets = ASSETS.characters as Record<string, string>;
-    return charAssets[speaker] || null;
+    const charAssets = ASSETS.characters as Record<string, string> | undefined;
+    if (charAssets && charAssets[speaker]) {
+      return charAssets[speaker];
+    }
+    return null;
   };
 
   // スピーカー名を取得
@@ -249,14 +279,24 @@ export function ScenarioScreen() {
     return '';
   };
 
+  // フラグ条件をチェック（将来の条件分岐用）
+  const checkFlagCondition = (flagKey: string, expectedValue: boolean | string | number): boolean => {
+    return scenarioFlags[flagKey] === expectedValue;
+  };
+
+  // 総好感度を計算
+  const getTotalAffection = (): number => {
+    return Object.values(affection).reduce((sum, val) => sum + val, 0);
+  };
+
   // シナリオがない場合
   if (!currentScenario || !currentEvent) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-        <div className="text-white">シナリオデータがありません</div>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
+        <div className="text-white mb-4">シナリオデータがありません</div>
         <button
           onClick={() => setScreen('home')}
-          className="mt-4 px-4 py-2 bg-purple-600 rounded"
+          className="px-6 py-3 bg-purple-600 rounded-lg text-white hover:bg-purple-700 transition-colors"
         >
           ホームへ戻る
         </button>
@@ -269,14 +309,26 @@ export function ScenarioScreen() {
   const isNarration = currentEvent.type === 'narration' || currentEvent.speaker === 'narration';
   const isChoice = currentEvent.type === 'choice';
   const isEffect = currentEvent.type === 'effect';
+  const backgroundStyle = getScenarioBackground();
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
       style={{
-        background: 'linear-gradient(to bottom, #1a1a2e, #16213e)',
+        background: backgroundStyle.startsWith('url') ? undefined : backgroundStyle,
+        backgroundImage: backgroundStyle.startsWith('url') ? backgroundStyle : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       }}
     >
+      {/* 背景オーバーレイ */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5))',
+        }}
+      />
+
       {/* 背景エフェクト */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
@@ -294,11 +346,22 @@ export function ScenarioScreen() {
       </div>
 
       {/* ヘッダー：チャプタータイトル＆コントロール */}
-      <div className="flex justify-between items-center px-4 py-2 bg-black/30">
+      <div className="relative flex justify-between items-center px-4 py-2 bg-black/30">
         <div className="text-white/60 text-sm">
           {currentScenario.title}
         </div>
         <div className="flex gap-2">
+          {/* ステータス表示ボタン */}
+          <button
+            onClick={() => setShowStatus(!showStatus)}
+            className={`px-3 py-1 text-xs rounded transition-colors ${
+              showStatus
+                ? 'bg-blue-600 text-white'
+                : 'bg-white/20 text-white/80 hover:bg-white/30'
+            }`}
+          >
+            STATUS
+          </button>
           {/* オートボタン */}
           <button
             onClick={() => setIsAutoMode(!isAutoMode)}
@@ -331,8 +394,44 @@ export function ScenarioScreen() {
         </div>
       </div>
 
+      {/* ステータスパネル */}
+      {showStatus && (
+        <div 
+          className="relative mx-4 mt-2 p-3 rounded-lg animate-fade-in"
+          style={{
+            background: 'rgba(0,0,0,0.8)',
+            border: '1px solid rgba(255,215,0,0.3)',
+          }}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-yellow-300">資金:</span>
+              <span className="text-white">{money.toLocaleString()}G</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-yellow-300">評判:</span>
+              <span className="text-white">{reputation}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-yellow-300">幻装Lv:</span>
+              <span className="text-white">{glamor.level}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-yellow-300">総好感度:</span>
+              <span className="text-white">{getTotalAffection()}</span>
+            </div>
+          </div>
+          {/* 主要フラグ表示（デバッグ用） */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-2 pt-2 border-t border-white/20 text-xs text-white/50">
+              <div>フラグ: {Object.entries(scenarioFlags).filter(([_, v]) => v === true).map(([k]) => k).join(', ') || 'なし'}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* キャラクター表示エリア */}
-      <div className="flex-1 flex items-end justify-center pb-4 relative">
+      <div className="relative flex-1 flex items-end justify-center pb-4">
         {characterImage && (
           <div className="relative animate-fade-in">
             <img
@@ -368,7 +467,7 @@ export function ScenarioScreen() {
       {/* テキストボックス */}
       {!isEffect && (
         <div
-          className="mx-4 mb-4 rounded-xl overflow-hidden"
+          className="relative mx-4 mb-4 rounded-xl overflow-hidden"
           style={{
             background: isNarration
               ? 'linear-gradient(135deg, rgba(0,0,0,0.9), rgba(20,20,40,0.9))'
@@ -434,7 +533,7 @@ export function ScenarioScreen() {
 
       {/* エフェクトタイプの場合の進行ボタン */}
       {isEffect && !isTyping && (
-        <div className="mx-4 mb-4 text-center">
+        <div className="relative mx-4 mb-4 text-center">
           <button
             onClick={handleNext}
             className="px-8 py-3 rounded-xl text-yellow-300 transition-all hover:scale-105"
@@ -452,6 +551,7 @@ export function ScenarioScreen() {
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute bottom-20 left-4 text-xs text-white/30">
           Event: {currentEventIndex + 1}/{currentScenario.events.length} | ID: {currentEvent.id}
+          {checkFlagCondition('debug', true) && ' | DEBUG MODE'}
         </div>
       )}
     </div>
