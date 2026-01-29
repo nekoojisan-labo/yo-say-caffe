@@ -14,6 +14,8 @@ interface DayResultData {
   ikemenVisits: CharacterId[];
 }
 
+type DotCharacterType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
 interface Customer {
   id: number;
   type: 'normal' | 'ikemen';
@@ -24,24 +26,28 @@ interface Customer {
   targetX: number;
   menuId?: string;
   timer: number;
-  color: string;
+  dotType: DotCharacterType;
+  animFrame: number;
+  direction: 'down' | 'left' | 'right' | 'up';
 }
 
 const SEAT_POSITIONS = [
-  { x: 15, y: 60 },
-  { x: 30, y: 60 },
-  { x: 45, y: 60 },
-  { x: 60, y: 60 },
-  { x: 15, y: 80 },
-  { x: 30, y: 80 },
-  { x: 45, y: 80 },
-  { x: 60, y: 80 },
+  { x: 15, y: 50 },
+  { x: 30, y: 50 },
+  { x: 45, y: 50 },
+  { x: 60, y: 50 },
+  { x: 15, y: 72 },
+  { x: 30, y: 72 },
+  { x: 45, y: 72 },
+  { x: 60, y: 72 },
 ];
 
-const CUSTOMER_COLORS = [
-  'bg-pink-400', 'bg-purple-400', 'bg-blue-400', 'bg-green-400',
-  'bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-cyan-400',
-];
+// スプライトシートの設定（画像解析結果）
+const SPRITE_WIDTH = 128;   // 1キャラの横幅
+const SPRITE_HEIGHT = 64;   // 1キャラの縦幅
+const CHAR_COLS = 8;        // 横に8キャラ
+const FRAMES_PER_DIR = 3;   // 各方向3フレーム
+const DIRECTIONS = 4;       // 4方向（下・左・右・上）
 
 export function DailyBusinessScreen() {
   const { 
@@ -53,8 +59,7 @@ export function DailyBusinessScreen() {
   const [orders, setOrders] = useState<Record<string, number>>({});
   const [dayResult, setDayResult] = useState<DayResultData | null>(null);
 
-  // 営業シミュレーション用
-  const [currentTime, setCurrentTime] = useState(9 * 60); // 9:00 開始（分単位）
+  const [currentTime, setCurrentTime] = useState(9 * 60);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [seats, setSeats] = useState<(number | null)[]>(Array(8).fill(null));
   const [todaySales, setTodaySales] = useState(0);
@@ -63,9 +68,18 @@ export function DailyBusinessScreen() {
   const [ikemenVisits, setIkemenVisits] = useState<CharacterId[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [globalAnimFrame, setGlobalAnimFrame] = useState(0);
 
   const customerIdRef = useRef(0);
   const unlockedMenus = MENU_DATA.filter((m) => m.unlocked);
+
+  // グローバルアニメーションフレーム更新（3フレーム）
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGlobalAnimFrame(prev => (prev + 1) % FRAMES_PER_DIR);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
 
   const calculateProcurementCost = () => {
     return Object.entries(orders).reduce((total, [itemId, qty]) => {
@@ -99,14 +113,12 @@ export function DailyBusinessScreen() {
     setPhase('running');
   };
 
-  // 時間をフォーマット
   const formatTime = (minutes: number) => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
 
-  // 時間帯を取得
   const getTimeOfDay = (minutes: number) => {
     const hour = Math.floor(minutes / 60);
     if (hour < 11) return 'morning';
@@ -115,7 +127,6 @@ export function DailyBusinessScreen() {
     return 'evening';
   };
 
-  // 新規客を生成
   const spawnCustomer = useCallback(() => {
     const emptySeatIndex = seats.findIndex(s => s === null);
     if (emptySeatIndex === -1) return null;
@@ -133,7 +144,9 @@ export function DailyBusinessScreen() {
       x: -10,
       targetX: SEAT_POSITIONS[emptySeatIndex].x,
       timer: 0,
-      color: CUSTOMER_COLORS[Math.floor(Math.random() * CUSTOMER_COLORS.length)],
+      dotType: Math.floor(Math.random() * CHAR_COLS) as DotCharacterType,
+      animFrame: 0,
+      direction: 'right',
     };
 
     return newCustomer;
@@ -147,14 +160,12 @@ export function DailyBusinessScreen() {
       setCurrentTime(prev => {
         const next = prev + speed;
         if (next >= 21 * 60) {
-          // 営業終了
           setTimeout(() => finishDay(), 100);
           return 21 * 60;
         }
         return next;
       });
 
-      // 客の来店判定
       const timeOfDay = getTimeOfDay(currentTime);
       let spawnChance = 0.03;
       if (timeOfDay === 'lunch') spawnChance = 0.08;
@@ -172,26 +183,26 @@ export function DailyBusinessScreen() {
         }
       }
 
-      // 客の状態更新
       setCustomers(prev => prev.map(customer => {
         if (customer.status === 'gone') return customer;
 
-        let updated = { ...customer };
+        const updated = { ...customer };
 
-        // 入店中 → 着席
         if (customer.status === 'entering') {
           updated.x = Math.min(customer.x + 2 * speed, customer.targetX);
+          updated.direction = 'right';
+          updated.animFrame = globalAnimFrame;
           if (updated.x >= customer.targetX) {
             updated.status = 'seated';
             updated.timer = 0;
+            updated.direction = 'down';
           }
         }
 
-        // 着席 → 食事開始
         if (customer.status === 'seated') {
           updated.timer += speed;
+          updated.animFrame = 0;
           if (updated.timer > 30) {
-            // メニューを注文
             const availableMenus = unlockedMenus.filter(m => getStock(m.id) > 0);
             if (availableMenus.length > 0) {
               const menu = availableMenus[Math.floor(Math.random() * availableMenus.length)];
@@ -213,25 +224,25 @@ export function DailyBusinessScreen() {
                 }
               }
             } else {
-              // 在庫なしで帰る
               updated.status = 'leaving';
               updated.timer = 0;
             }
           }
         }
 
-        // 食事中 → 退店開始
         if (customer.status === 'eating') {
           updated.timer += speed;
+          updated.animFrame = Math.floor(updated.timer / 20) % FRAMES_PER_DIR;
           if (updated.timer > 60 + Math.random() * 30) {
             updated.status = 'leaving';
             updated.timer = 0;
           }
         }
 
-        // 退店中
         if (customer.status === 'leaving') {
           updated.x += 3 * speed;
+          updated.direction = 'right';
+          updated.animFrame = globalAnimFrame;
           if (updated.x > 110) {
             updated.status = 'gone';
             setSeats(prev => {
@@ -249,10 +260,9 @@ export function DailyBusinessScreen() {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock]);
+  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock, globalAnimFrame]);
 
   const finishDay = () => {
-    // イケメンと出会ったら図鑑を解放＆好感度UP
     ikemenVisits.forEach((ikemenId) => {
       useGameStore.getState().unlockEncyclopedia(ikemenId);
       useGameStore.getState().addAffection(ikemenId, 10);
@@ -288,76 +298,37 @@ export function DailyBusinessScreen() {
     const currentMoney = money;
     
     if (currentMoney < 5000) {
-      return {
-        message: '資金がかなり厳しい状態だね...。まずは確実に売れるメニューに絞って、少量仕入れで利益を積み重ねよう。',
-        mood: 'concerned'
-      };
+      return { message: '資金がかなり厳しい状態だね...。まずは確実に売れるメニューに絞って、少量仕入れで利益を積み重ねよう。', mood: 'concerned' };
     }
-
     if (profit < -1000) {
-      return {
-        message: '今日は大きな赤字だった...。仕入れが多すぎたか、お客さんが予想より少なかったね。',
-        mood: 'concerned'
-      };
+      return { message: '今日は大きな赤字だった...。仕入れが多すぎたか、お客さんが予想より少なかったね。', mood: 'concerned' };
     }
-
     if (customers < 5) {
-      return {
-        message: 'お客さんがほとんど来なかったね...。評判を上げるために、イケメンたちとの交流を増やしてみては？',
-        mood: 'concerned'
-      };
+      return { message: 'お客さんがほとんど来なかったね...。評判を上げるために、イケメンたちとの交流を増やしてみては？', mood: 'concerned' };
     }
-
     if (ikemenVisits.length >= 3) {
       const names = ikemenVisits.map(id => CHARACTERS[id].name).join('、');
-      return {
-        message: `今日は${names}と、なんと${ikemenVisits.length}人も来てくれたね！すごい人気だ！`,
-        mood: 'excited'
-      };
+      return { message: `今日は${names}と、なんと${ikemenVisits.length}人も来てくれたね！すごい人気だ！`, mood: 'excited' };
     }
-
     if (ikemenVisits.length > 0) {
       const visitedChar = CHARACTERS[ikemenVisits[0]];
       const currentAffection = affection[ikemenVisits[0]] || 0;
-      
       if (currentAffection >= 50) {
-        return {
-          message: `${visitedChar.name}との絆が深まってきているね。彼の好みをもっと研究してみよう。`,
-          mood: 'happy'
-        };
+        return { message: `${visitedChar.name}との絆が深まってきているね。彼の好みをもっと研究してみよう。`, mood: 'happy' };
       }
-      return {
-        message: `${visitedChar.name}が来てくれたね！${visitedChar.attribute}の妖精は${visitedChar.role}として知られているんだ。`,
-        mood: 'happy'
-      };
+      return { message: `${visitedChar.name}が来てくれたね！${visitedChar.attribute}の妖精だよ。`, mood: 'happy' };
     }
-
     if (profitMargin > 40) {
-      return {
-        message: `素晴らしい！利益率が${Math.round(profitMargin)}%もある。効率的な経営ができているね。`,
-        mood: 'excited'
-      };
+      return { message: `素晴らしい！利益率が${Math.round(profitMargin)}%もある。効率的な経営ができているね。`, mood: 'excited' };
     }
-
     if (customers >= 25) {
-      return {
-        message: `今日は${customers}人も来店してくれた！大盛況だね。`,
-        mood: 'happy'
-      };
+      return { message: `今日は${customers}人も来店してくれた！大盛況だね。`, mood: 'happy' };
     }
-
     if (profit > 500) {
-      return {
-        message: `安定した利益が出ているね。${profit.toLocaleString()}Gの黒字は立派だよ。`,
-        mood: 'happy'
-      };
+      return { message: `安定した利益が出ているね。${profit.toLocaleString()}Gの黒字は立派だよ。`, mood: 'happy' };
     }
-
     if (profit < 0) {
-      return {
-        message: '今日は少し赤字だったけど、大きな問題じゃないよ。焦らずいこう。',
-        mood: 'neutral'
-      };
+      return { message: '今日は少し赤字だったけど、大きな問題じゃないよ。焦らずいこう。', mood: 'neutral' };
     }
 
     const defaultMessages = [
@@ -365,11 +336,7 @@ export function DailyBusinessScreen() {
       '順調な営業だったね。この調子で少しずつ成長していこう。',
       '安定した一日だったね。新しいメニューで変化をつけてみるのもいいかも。',
     ];
-    
-    return {
-      message: defaultMessages[day % defaultMessages.length],
-      mood: 'neutral'
-    };
+    return { message: defaultMessages[day % defaultMessages.length], mood: 'neutral' };
   };
 
   // ドットキャラコンポーネント
@@ -377,37 +344,61 @@ export function DailyBusinessScreen() {
     const isIkemen = customer.type === 'ikemen';
     const char = isIkemen && customer.ikemenId ? CHARACTERS[customer.ikemenId] : null;
     
+    // 方向マップ: down=0, left=1, right=2, up=3
+    const directionMap: Record<string, number> = { down: 0, left: 1, right: 2, up: 3 };
+    const dirIndex = directionMap[customer.direction];
+    
+    // フレーム計算（0, 1, 2 の3フレーム）
+    const frameIndex = customer.animFrame % FRAMES_PER_DIR;
+    
+    // キャラタイプ（0-7の8種類）
+    const charType = customer.dotType % CHAR_COLS;
+    
+    // スプライト位置計算
+    const spriteX = charType * SPRITE_WIDTH;
+    const spriteY = (dirIndex * FRAMES_PER_DIR + frameIndex) * SPRITE_HEIGHT;
+
+    // 表示サイズ
+    const displayScale = 0.8;
+    const displayWidth = SPRITE_WIDTH * displayScale;
+    const displayHeight = SPRITE_HEIGHT * displayScale;
+
     return (
       <div
-        className={`absolute transition-all duration-100 ${customer.status === 'gone' ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute transition-all duration-75 ${customer.status === 'gone' ? 'opacity-0' : 'opacity-100'}`}
         style={{
           left: `${customer.x}%`,
           top: `${SEAT_POSITIONS[customer.seatIndex]?.y || 70}%`,
-          transform: 'translate(-50%, -50%)',
+          transform: 'translate(-50%, -100%)',
+          zIndex: Math.floor(SEAT_POSITIONS[customer.seatIndex]?.y || 0) + 10,
         }}
       >
-        {/* キャラ本体 */}
-        <div className={`relative ${customer.status === 'eating' ? 'animate-pulse' : ''}`}>
-          {/* 頭 */}
+        <div className="relative" style={{ width: displayWidth, height: displayHeight }}>
           <div
-            className={`w-6 h-6 rounded-full ${isIkemen ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 ring-2 ring-yellow-300' : customer.color} shadow-lg`}
+            style={{
+              width: displayWidth,
+              height: displayHeight,
+              backgroundImage: `url(${ASSETS.dotCustomers})`,
+              backgroundPosition: `-${spriteX * displayScale}px -${spriteY * displayScale}px`,
+              backgroundSize: `${SPRITE_WIDTH * CHAR_COLS * displayScale}px ${SPRITE_HEIGHT * DIRECTIONS * FRAMES_PER_DIR * displayScale}px`,
+              imageRendering: 'pixelated',
+            }}
           />
-          {/* 体 */}
-          <div
-            className={`w-4 h-5 ${isIkemen ? 'bg-gradient-to-br from-purple-400 to-purple-600' : customer.color} rounded-t-sm mx-auto -mt-1`}
-            style={{ filter: 'brightness(0.8)' }}
-          />
-          {/* イケメンの場合はアイコン表示 */}
+          
           {isIkemen && char && (
-            <div className="absolute -top-2 -right-2 text-sm animate-bounce">
+            <div className="absolute -top-4 -right-2 text-xl animate-bounce drop-shadow-lg bg-black/50 rounded-full p-1">
               {char.icon}
             </div>
           )}
-          {/* 食事中エフェクト */}
+          
           {customer.status === 'eating' && (
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs animate-bounce">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xl animate-bounce">
               ☕
             </div>
+          )}
+          
+          {isIkemen && (
+            <div className="absolute inset-0 rounded-full bg-yellow-400/30 animate-pulse -z-10 scale-150" />
           )}
         </div>
       </div>
@@ -416,13 +407,11 @@ export function DailyBusinessScreen() {
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0d0517] text-white overflow-hidden">
-      {/* 背景装飾 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
       </div>
 
-      {/* ヘッダー */}
       <header className="relative z-10 p-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -431,9 +420,7 @@ export function DailyBusinessScreen() {
               <p className="text-2xl font-black leading-none">{day}</p>
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-pink-300 to-purple-300 bg-clip-text text-transparent">
-                妖精カフェ物語
-              </h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-pink-300 to-purple-300 bg-clip-text text-transparent">妖精カフェ物語</h1>
               <p className="text-xs text-gray-400">
                 {phase === 'procurement' && '☀️ 開店準備'}
                 {phase === 'operation' && '☕ 営業開始'}
@@ -446,19 +433,15 @@ export function DailyBusinessScreen() {
           <div className="text-right">
             <p className="text-xs text-gray-400">所持金</p>
             <p className="text-2xl font-black text-yellow-400 flex items-center gap-1">
-              <span className="text-lg">💰</span>
-              {money.toLocaleString()}
-              <span className="text-sm font-normal text-yellow-400/70">G</span>
+              <span className="text-lg">💰</span>{money.toLocaleString()}<span className="text-sm font-normal text-yellow-400/70">G</span>
             </p>
           </div>
         </div>
       </header>
 
-      {/* メインコンテンツ */}
       <main className="relative z-10 flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto">
           
-          {/* 仕入れパート */}
           {phase === 'procurement' && (
             <div className="space-y-6">
               <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl p-6 border border-amber-500/30">
@@ -478,65 +461,27 @@ export function DailyBusinessScreen() {
                   const menuProfit = menu.price - menu.cost;
                   
                   return (
-                    <div
-                      key={menu.id}
-                      className={`bg-white/5 backdrop-blur-sm rounded-xl p-4 border transition-all ${
-                        orderQty > 0 
-                          ? 'border-cyan-400/50 bg-cyan-500/10' 
-                          : 'border-white/10 hover:border-white/20'
-                      }`}
-                    >
+                    <div key={menu.id} className={`bg-white/5 backdrop-blur-sm rounded-xl p-4 border transition-all ${orderQty > 0 ? 'border-cyan-400/50 bg-cyan-500/10' : 'border-white/10 hover:border-white/20'}`}>
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h3 className="font-bold text-lg">{menu.name}</h3>
                           <div className="flex gap-3 text-sm mt-1">
-                            <span className="text-gray-400">
-                              原価 <span className="text-red-400">{menu.cost}G</span>
-                            </span>
-                            <span className="text-gray-400">
-                              売価 <span className="text-green-400">{menu.price}G</span>
-                            </span>
+                            <span className="text-gray-400">原価 <span className="text-red-400">{menu.cost}G</span></span>
+                            <span className="text-gray-400">売価 <span className="text-green-400">{menu.price}G</span></span>
                             <span className="text-cyan-400">+{menuProfit}G</span>
                           </div>
                         </div>
-                        <div className="bg-purple-500/30 px-2 py-1 rounded-lg text-sm">
-                          在庫 {stock}
-                        </div>
+                        <div className="bg-purple-500/30 px-2 py-1 rounded-lg text-sm">在庫 {stock}</div>
                       </div>
-
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setOrders((p) => ({ ...p, [menu.id]: Math.max(0, (p[menu.id] || 0) - 5) }))}
-                            className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold"
-                          >
-                            -5
-                          </button>
-                          <button
-                            onClick={() => setOrders((p) => ({ ...p, [menu.id]: Math.max(0, (p[menu.id] || 0) - 1) }))}
-                            className="w-10 h-10 bg-white/10 hover:bg-red-500/50 rounded-lg text-lg font-bold"
-                          >
-                            -
-                          </button>
-                          <div className="w-16 h-10 bg-black/30 rounded-lg flex items-center justify-center">
-                            <span className="text-xl font-bold text-cyan-400">{orderQty}</span>
-                          </div>
-                          <button
-                            onClick={() => setOrders((p) => ({ ...p, [menu.id]: (p[menu.id] || 0) + 1 }))}
-                            className="w-10 h-10 bg-white/10 hover:bg-green-500/50 rounded-lg text-lg font-bold"
-                          >
-                            +
-                          </button>
-                          <button
-                            onClick={() => setOrders((p) => ({ ...p, [menu.id]: (p[menu.id] || 0) + 5 }))}
-                            className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold"
-                          >
-                            +5
-                          </button>
+                          <button onClick={() => setOrders((p) => ({ ...p, [menu.id]: Math.max(0, (p[menu.id] || 0) - 5) }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold">-5</button>
+                          <button onClick={() => setOrders((p) => ({ ...p, [menu.id]: Math.max(0, (p[menu.id] || 0) - 1) }))} className="w-10 h-10 bg-white/10 hover:bg-red-500/50 rounded-lg text-lg font-bold">-</button>
+                          <div className="w-16 h-10 bg-black/30 rounded-lg flex items-center justify-center"><span className="text-xl font-bold text-cyan-400">{orderQty}</span></div>
+                          <button onClick={() => setOrders((p) => ({ ...p, [menu.id]: (p[menu.id] || 0) + 1 }))} className="w-10 h-10 bg-white/10 hover:bg-green-500/50 rounded-lg text-lg font-bold">+</button>
+                          <button onClick={() => setOrders((p) => ({ ...p, [menu.id]: (p[menu.id] || 0) + 5 }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold">+5</button>
                         </div>
-                        {orderQty > 0 && (
-                          <p className="text-sm text-red-400">-{(menu.cost * orderQty).toLocaleString()}G</p>
-                        )}
+                        {orderQty > 0 && <p className="text-sm text-red-400">-{(menu.cost * orderQty).toLocaleString()}G</p>}
                       </div>
                     </div>
                   );
@@ -549,11 +494,7 @@ export function DailyBusinessScreen() {
                     <p className="text-gray-400 mb-1">仕入れ数: {totalOrderCount}個</p>
                     <p className="text-3xl font-black text-red-400">-{calculateProcurementCost().toLocaleString()} G</p>
                   </div>
-                  <button
-                    onClick={handleConfirmProcurement}
-                    disabled={calculateProcurementCost() > money}
-                    className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg transition-all hover:scale-105 disabled:hover:scale-100"
-                  >
+                  <button onClick={handleConfirmProcurement} disabled={calculateProcurementCost() > money} className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg transition-all hover:scale-105 disabled:hover:scale-100">
                     仕入れ確定 →
                   </button>
                 </div>
@@ -561,7 +502,6 @@ export function DailyBusinessScreen() {
             </div>
           )}
 
-          {/* 営業開始前 */}
           {phase === 'operation' && (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <div className="text-center space-y-8">
@@ -570,23 +510,15 @@ export function DailyBusinessScreen() {
                   <h2 className="text-3xl font-black mb-2">準備完了！</h2>
                   <p className="text-gray-400">お客様をお迎えしましょう</p>
                 </div>
-                <button
-                  onClick={startOperation}
-                  className="px-12 py-5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl font-bold text-xl shadow-2xl hover:scale-105 transition-all"
-                >
-                  <span className="flex items-center gap-3">
-                    <span>🚪</span>
-                    <span>開店する</span>
-                  </span>
+                <button onClick={startOperation} className="px-12 py-5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl font-bold text-xl shadow-2xl hover:scale-105 transition-all">
+                  <span className="flex items-center gap-3"><span>🚪</span><span>開店する</span></span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* 営業中（アニメーション） */}
           {phase === 'running' && (
             <div className="space-y-4">
-              {/* 時間・売上表示 */}
               <div className="grid grid-cols-4 gap-3">
                 <div className="bg-white/10 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-400">時刻</p>
@@ -606,65 +538,33 @@ export function DailyBusinessScreen() {
                 </div>
               </div>
 
-              {/* 営業時間バー */}
               <div className="bg-black/30 rounded-full h-4 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-yellow-500 via-orange-500 to-purple-600 transition-all duration-100"
-                  style={{ width: `${((currentTime - 9 * 60) / (12 * 60)) * 100}%` }}
-                />
+                <div className="h-full bg-gradient-to-r from-yellow-500 via-orange-500 to-purple-600 transition-all duration-100" style={{ width: `${((currentTime - 9 * 60) / (12 * 60)) * 100}%` }} />
               </div>
               <div className="flex justify-between text-xs text-gray-500">
-                <span>9:00</span>
-                <span>12:00</span>
-                <span>15:00</span>
-                <span>18:00</span>
-                <span>21:00</span>
+                <span>9:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span>
               </div>
 
-              {/* カフェビュー */}
-              <div 
-                className="relative bg-gradient-to-b from-amber-900/30 to-amber-950/50 rounded-2xl border border-amber-500/20 overflow-hidden"
-                style={{ height: '350px' }}
-              >
-                {/* 背景画像 */}
-                {ASSETS.backgrounds?.cafeMorning && (
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-30"
-                    style={{ 
-                      backgroundImage: `url(${
-                        getTimeOfDay(currentTime) === 'morning' ? ASSETS.backgrounds.cafeMorning :
-                        getTimeOfDay(currentTime) === 'evening' ? ASSETS.backgrounds.cafeEvening :
-                        ASSETS.backgrounds.cafeNight
-                      })` 
-                    }}
-                  />
+              <div className="relative bg-gradient-to-b from-amber-900/30 to-amber-950/50 rounded-2xl border border-amber-500/20 overflow-hidden" style={{ height: '350px' }}>
+                {ASSETS.backgrounds && (
+                  <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${getTimeOfDay(currentTime) === 'morning' ? ASSETS.backgrounds.cafeMorning : getTimeOfDay(currentTime) === 'evening' ? ASSETS.backgrounds.cafeEvening : ASSETS.backgrounds.cafeNight})` }} />
                 )}
 
-                {/* 床 */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-amber-900/50 to-transparent" />
 
-                {/* 席（テーブル） */}
                 {SEAT_POSITIONS.map((pos, idx) => (
-                  <div
-                    key={idx}
-                    className={`absolute w-8 h-4 rounded ${seats[idx] ? 'bg-amber-700' : 'bg-amber-800/50'} border border-amber-600/50`}
-                    style={{
-                      left: `${pos.x}%`,
-                      top: `${pos.y + 8}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  />
+                  <div key={idx} className={`absolute w-10 h-6 rounded-lg ${seats[idx] ? 'bg-amber-700 shadow-lg shadow-amber-500/30' : 'bg-amber-800/50'} border border-amber-600/50`} style={{ left: `${pos.x}%`, top: `${pos.y + 12}%`, transform: 'translate(-50%, -50%)' }}>
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-2 h-4 bg-amber-900 rounded-sm" />
+                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-2 h-4 bg-amber-900 rounded-sm" />
+                  </div>
                 ))}
 
-                {/* お客さん */}
                 {customers.filter(c => c.status !== 'gone').map(customer => (
                   <DotCharacter key={customer.id} customer={customer} />
                 ))}
 
-                {/* カウンター */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-6 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 rounded-t-lg border-t-2 border-amber-500/50" />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-gradient-to-r from-amber-800 via-amber-700 to-amber-800 rounded-t-lg border-t-2 border-amber-500/50 shadow-lg" />
 
-                {/* 時間帯表示 */}
                 <div className="absolute top-3 right-3 px-3 py-1 bg-black/50 rounded-full text-xs">
                   {getTimeOfDay(currentTime) === 'morning' && '🌅 朝の時間帯'}
                   {getTimeOfDay(currentTime) === 'lunch' && '🍽️ ランチタイム'}
@@ -673,31 +573,16 @@ export function DailyBusinessScreen() {
                 </div>
               </div>
 
-              {/* コントロール */}
               <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => setIsPaused(!isPaused)}
-                  className={`px-6 py-3 rounded-xl font-bold ${isPaused ? 'bg-green-600' : 'bg-yellow-600'}`}
-                >
+                <button onClick={() => setIsPaused(!isPaused)} className={`px-6 py-3 rounded-xl font-bold ${isPaused ? 'bg-green-600' : 'bg-yellow-600'}`}>
                   {isPaused ? '▶ 再開' : '⏸ 一時停止'}
                 </button>
-                <button
-                  onClick={() => setSpeed(speed === 1 ? 3 : speed === 3 ? 5 : 1)}
-                  className="px-6 py-3 bg-blue-600 rounded-xl font-bold"
-                >
-                  速度 x{speed}
-                </button>
-                <button
-                  onClick={finishDay}
-                  className="px-6 py-3 bg-purple-600 rounded-xl font-bold"
-                >
-                  営業終了 →
-                </button>
+                <button onClick={() => setSpeed(speed === 1 ? 3 : speed === 3 ? 5 : 1)} className="px-6 py-3 bg-blue-600 rounded-xl font-bold">速度 x{speed}</button>
+                <button onClick={finishDay} className="px-6 py-3 bg-purple-600 rounded-xl font-bold">営業終了 →</button>
               </div>
             </div>
           )}
 
-          {/* 結果パート */}
           {phase === 'result' && dayResult && (
             <div className="space-y-6">
               <div className="text-center py-4">
@@ -709,13 +594,7 @@ export function DailyBusinessScreen() {
                 <ResultCard icon="👥" label="来客数" value={`${dayResult.customers}名`} />
                 <ResultCard icon="💰" label="売上" value={`${dayResult.sales.toLocaleString()}G`} color="text-green-400" />
                 <ResultCard icon="📦" label="原価" value={`${dayResult.cost.toLocaleString()}G`} color="text-red-400" />
-                <ResultCard
-                  icon={dayResult.profit >= 0 ? "📈" : "📉"}
-                  label="利益"
-                  value={`${dayResult.profit >= 0 ? '+' : ''}${dayResult.profit.toLocaleString()}G`}
-                  color={dayResult.profit >= 0 ? "text-green-400" : "text-red-400"}
-                  highlight
-                />
+                <ResultCard icon={dayResult.profit >= 0 ? "📈" : "📉"} label="利益" value={`${dayResult.profit >= 0 ? '+' : ''}${dayResult.profit.toLocaleString()}G`} color={dayResult.profit >= 0 ? "text-green-400" : "text-red-400"} highlight />
               </div>
 
               {dayResult.ikemenVisits.length > 0 && (
@@ -728,21 +607,13 @@ export function DailyBusinessScreen() {
                     {dayResult.ikemenVisits.map((id) => {
                       const char = CHARACTERS[id];
                       const charImage = ASSETS.characters[id];
-                      
                       return (
                         <div key={id} className="bg-black/30 rounded-xl overflow-hidden border border-pink-400/30">
                           <div className="h-32 bg-gradient-to-b from-purple-900/50 to-black/50 relative overflow-hidden">
-                            {charImage ? (
-                              <img src={charImage} alt={char.name} className="w-full h-full object-cover object-top" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-5xl">{char.icon}</div>
-                            )}
+                            {charImage ? <img src={charImage} alt={char.name} className="w-full h-full object-cover object-top" /> : <div className="w-full h-full flex items-center justify-center text-5xl">{char.icon}</div>}
                           </div>
                           <div className="p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-lg">{char.icon}</span>
-                              <span className="font-bold">{char.name}</span>
-                            </div>
+                            <div className="flex items-center gap-2 mb-1"><span className="text-lg">{char.icon}</span><span className="font-bold">{char.name}</span></div>
                             <p className="text-xs text-pink-400">♥ +10</p>
                           </div>
                         </div>
@@ -753,17 +624,11 @@ export function DailyBusinessScreen() {
               )}
 
               <div className="flex justify-center pt-4">
-                <button
-                  onClick={handleToAdvice}
-                  className="px-10 py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-lg shadow-lg hover:scale-105 transition-transform"
-                >
-                  シオンのアドバイスを聞く →
-                </button>
+                <button onClick={handleToAdvice} className="px-10 py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-lg shadow-lg hover:scale-105 transition-transform">シオンのアドバイスを聞く →</button>
               </div>
             </div>
           )}
 
-          {/* アドバイスパート */}
           {phase === 'advice' && (() => {
             const advice = getShionAdvice();
             const moodStyles = {
@@ -781,23 +646,15 @@ export function DailyBusinessScreen() {
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="flex-shrink-0 flex flex-col items-center">
                         <div className={`w-32 h-40 rounded-2xl overflow-hidden border-2 ${style.border} shadow-lg`}>
-                          {ASSETS.characters.shion ? (
-                            <img src={ASSETS.characters.shion} alt="シオン" className="w-full h-full object-cover object-top" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl">🌳</div>
-                          )}
+                          {ASSETS.characters.shion ? <img src={ASSETS.characters.shion} alt="シオン" className="w-full h-full object-cover object-top" /> : <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl">🌳</div>}
                         </div>
                         <div className="text-center mt-2">
-                          <p className={`font-bold ${style.nameColor} flex items-center gap-1 justify-center`}>
-                            <span>{style.icon}</span><span>シオン</span>
-                          </p>
+                          <p className={`font-bold ${style.nameColor} flex items-center gap-1 justify-center`}><span>{style.icon}</span><span>シオン</span></p>
                           <p className="text-xs text-gray-400">Forest Sage</p>
                         </div>
                       </div>
                       <div className="flex-1">
-                        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-                          <p className="text-lg leading-relaxed">{advice.message}</p>
-                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10"><p className="text-lg leading-relaxed">{advice.message}</p></div>
                       </div>
                     </div>
                   </div>
@@ -813,13 +670,9 @@ export function DailyBusinessScreen() {
         </div>
       </main>
 
-      {/* フッター */}
       <footer className="relative z-10 p-4 border-t border-white/10 bg-black/30 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => setScreen('home')}
-            className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
-          >
+          <button onClick={() => setScreen('home')} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2">
             <span>←</span><span>ホームに戻る</span>
           </button>
         </div>
@@ -831,10 +684,7 @@ export function DailyBusinessScreen() {
 function ResultCard({ icon, label, value, color = 'text-white', highlight = false }: { icon: string; label: string; value: string; color?: string; highlight?: boolean }) {
   return (
     <div className={`rounded-2xl p-5 border ${highlight ? 'bg-gradient-to-br from-white/10 to-white/5 border-white/20 shadow-lg' : 'bg-white/5 border-white/10'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xl">{icon}</span>
-        <span className="text-sm text-gray-400">{label}</span>
-      </div>
+      <div className="flex items-center gap-2 mb-2"><span className="text-2xl">{icon}</span><span className="text-sm text-gray-400">{label}</span></div>
       <p className={`text-3xl font-black ${color}`}>{value}</p>
     </div>
   );

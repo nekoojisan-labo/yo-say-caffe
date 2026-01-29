@@ -6,6 +6,7 @@ import cafeEvening from '@/assets/images/cafeevning.webp';
 import cafeNight from '@/assets/images/cafenight.webp';
 import shiire from '@/assets/images/shiire.webp';
 import kekka from '@/assets/images/kekka.webp';
+import dotCustomers from '@/assets/images/dot_customers.webp';
 
 // ロゴ
 import logoJa from '@/assets/images/logo_ja.webp';
@@ -75,4 +76,7 @@ export const ASSETS = {
     lv5: mcL5,
     lv6: mcL6,
   } as Record<string, string>,
+
+   // ドットキャラ
+  dotCustomers,
 };
