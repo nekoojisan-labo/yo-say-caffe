@@ -577,3 +577,54 @@ export interface ManagementDecision {
   cost?: number;
   expectedEffect: string;
 }
+// ===== 追加の型定義（gameStore互換用） =====
+
+// 日のフェーズ
+export type DayPhase = 'PREP' | 'OPEN' | 'RESULT' | 'ADVICE';
+
+// ゲームフラグ
+export interface GameFlags {
+  joinedGuild: boolean;
+  routeLock: string | null;
+  gameOver: boolean;
+  patronStage: number;
+  [key: string]: boolean | string | number | null;
+}
+
+// イベントペイロード
+export interface EventPayload {
+  type: string;
+  characterId?: string;
+  choices: {
+    heartDelta?: number;
+    repDelta?: number;
+    cashDelta?: number;
+    glamorPointsDelta?: number;
+    effects?: Record<string, unknown>;
+  }[];
+  [key: string]: unknown;
+}
+
+// ロマンスフォーカス
+export interface RomanceFocus {
+  id: IkemenId | null;
+  heat: number;
+}
+
+// ===== 経営指標 =====
+
+export interface FinancialStats {
+  sales: number;
+  cost: number;
+  cogs: number;           // 追加
+  fixedCost: number;
+  variableCost: number;   // 追加
+  waste: number;
+  profit: number;
+  costRate: number;
+  profitRate: number;
+  breakEvenPoint: number;
+  breakEven: number;      // 追加
+  breakEvenAchievement: number;
+  wasteRate: number;
+}
