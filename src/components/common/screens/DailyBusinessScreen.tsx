@@ -29,6 +29,8 @@ interface Customer {
   dotType: DotCharacterType;
   animFrame: number;
   direction: 'down' | 'left' | 'right' | 'up';
+  orderPrice?: number;
+  orderCost?: number;
 }
 
 const SEAT_POSITIONS = [
@@ -42,17 +44,14 @@ const SEAT_POSITIONS = [
   { x: 60, y: 72 },
 ];
 
-// スプライトシートの設定（画像解析結果）
-const SPRITE_WIDTH = 128;   // 1キャラの横幅
-const SPRITE_HEIGHT = 64;   // 1キャラの縦幅
-const CHAR_COLS = 8;        // 横に8キャラ
-const FRAMES_PER_DIR = 3;   // 各方向3フレーム
-const DIRECTIONS = 4;       // 4方向（下・左・右・上）
+const SPRITE_WIDTH = 128;
+const SPRITE_HEIGHT = 64;
+const CHAR_COLS = 8;
+const FRAMES_PER_DIR = 3;
+const DIRECTIONS = 4;
 
 export function DailyBusinessScreen() {
-  const { 
-    day, money, addMoney, advanceDay, setScreen, affection
-  } = useGameStore();
+  const { day, money, addMoney, advanceDay, setScreen, affection } = useGameStore();
   const { getStock, consumeStock, confirmOrders, processDayChange } = useInventoryStore();
 
   const [phase, setPhase] = useState<BusinessPhase>('procurement');
@@ -62,24 +61,42 @@ export function DailyBusinessScreen() {
   const [currentTime, setCurrentTime] = useState(9 * 60);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [seats, setSeats] = useState<(number | null)[]>(Array(8).fill(null));
-  const [todaySales, setTodaySales] = useState(0);
-  const [todayCost, setTodayCost] = useState(0);
-  const [todayCustomers, setTodayCustomers] = useState(0);
-  const [ikemenVisits, setIkemenVisits] = useState<CharacterId[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [globalAnimFrame, setGlobalAnimFrame] = useState(0);
 
+  // useRef で売上等を管理（レンダリング中のsetState回避）
+  const salesRef = useRef(0);
+  const costRef = useRef(0);
+  const customerCountRef = useRef(0);
+  const ikemenVisitsRef = useRef<CharacterId[]>([]);
   const customerIdRef = useRef(0);
+
   const unlockedMenus = MENU_DATA.filter((m) => m.unlocked);
 
-  // グローバルアニメーションフレーム更新（3フレーム）
+  // 表示用のstate（定期的にrefから同期）
+  const [displaySales, setDisplaySales] = useState(0);
+  const [displayCustomers, setDisplayCustomers] = useState(0);
+  const [displayIkemen, setDisplayIkemen] = useState(0);
+
+  // グローバルアニメーションフレーム更新
   useEffect(() => {
     const interval = setInterval(() => {
       setGlobalAnimFrame(prev => (prev + 1) % FRAMES_PER_DIR);
     }, 200);
     return () => clearInterval(interval);
   }, []);
+
+  // 表示用stateを定期更新
+  useEffect(() => {
+    if (phase !== 'running') return;
+    const interval = setInterval(() => {
+      setDisplaySales(salesRef.current);
+      setDisplayCustomers(customerCountRef.current);
+      setDisplayIkemen(ikemenVisitsRef.current.length);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   const calculateProcurementCost = () => {
     return Object.entries(orders).reduce((total, [itemId, qty]) => {
@@ -106,10 +123,13 @@ export function DailyBusinessScreen() {
     setCurrentTime(9 * 60);
     setCustomers([]);
     setSeats(Array(8).fill(null));
-    setTodaySales(0);
-    setTodayCost(0);
-    setTodayCustomers(0);
-    setIkemenVisits([]);
+    salesRef.current = 0;
+    costRef.current = 0;
+    customerCountRef.current = 0;
+    ikemenVisitsRef.current = [];
+    setDisplaySales(0);
+    setDisplayCustomers(0);
+    setDisplayIkemen(0);
     setPhase('running');
   };
 
@@ -152,6 +172,25 @@ export function DailyBusinessScreen() {
     return newCustomer;
   }, [seats]);
 
+  const finishDay = useCallback(() => {
+    ikemenVisitsRef.current.forEach((ikemenId) => {
+      useGameStore.getState().unlockEncyclopedia(ikemenId);
+      useGameStore.getState().addAffection(ikemenId, 10);
+    });
+
+    addMoney(salesRef.current);
+
+    setDayResult({
+      customers: customerCountRef.current,
+      sales: salesRef.current,
+      cost: costRef.current,
+      profit: salesRef.current - costRef.current,
+      ikemenVisits: [...ikemenVisitsRef.current],
+    });
+
+    setPhase('result');
+  }, [addMoney]);
+
   // 営業ループ
   useEffect(() => {
     if (phase !== 'running' || isPaused) return;
@@ -166,6 +205,7 @@ export function DailyBusinessScreen() {
         return next;
       });
 
+      // 客の来店判定
       const timeOfDay = getTimeOfDay(currentTime);
       let spawnChance = 0.03;
       if (timeOfDay === 'lunch') spawnChance = 0.08;
@@ -183,103 +223,88 @@ export function DailyBusinessScreen() {
         }
       }
 
-      setCustomers(prev => prev.map(customer => {
-        if (customer.status === 'gone') return customer;
+      // 客の状態更新
+      setCustomers(prev => {
+        return prev.map(customer => {
+          if (customer.status === 'gone') return customer;
 
-        const updated = { ...customer };
+          const updated = { ...customer };
 
-        if (customer.status === 'entering') {
-          updated.x = Math.min(customer.x + 2 * speed, customer.targetX);
-          updated.direction = 'right';
-          updated.animFrame = globalAnimFrame;
-          if (updated.x >= customer.targetX) {
-            updated.status = 'seated';
-            updated.timer = 0;
-            updated.direction = 'down';
+          if (customer.status === 'entering') {
+            updated.x = Math.min(customer.x + 2 * speed, customer.targetX);
+            updated.direction = 'right';
+            updated.animFrame = globalAnimFrame;
+            if (updated.x >= customer.targetX) {
+              updated.status = 'seated';
+              updated.timer = 0;
+              updated.direction = 'down';
+            }
           }
-        }
 
-        if (customer.status === 'seated') {
-          updated.timer += speed;
-          updated.animFrame = 0;
-          if (updated.timer > 30) {
-            const availableMenus = unlockedMenus.filter(m => getStock(m.id) > 0);
-            if (availableMenus.length > 0) {
-              const menu = availableMenus[Math.floor(Math.random() * availableMenus.length)];
-              if (consumeStock(menu.id, 1)) {
-                updated.menuId = menu.id;
-                updated.status = 'eating';
-                updated.timer = 0;
-                setTodaySales(s => s + menu.price);
-                setTodayCost(c => c + menu.cost);
-                setTodayCustomers(c => c + 1);
+          if (customer.status === 'seated') {
+            updated.timer += speed;
+            updated.animFrame = 0;
+            if (updated.timer > 30) {
+              const availableMenus = unlockedMenus.filter(m => getStock(m.id) > 0);
+              if (availableMenus.length > 0) {
+                const menu = availableMenus[Math.floor(Math.random() * availableMenus.length)];
+                if (consumeStock(menu.id, 1)) {
+                  updated.menuId = menu.id;
+                  updated.status = 'eating';
+                  updated.timer = 0;
+                  updated.orderPrice = menu.price;
+                  updated.orderCost = menu.cost;
+                  
+                  // refで売上を更新
+                  salesRef.current += menu.price;
+                  costRef.current += menu.cost;
+                  customerCountRef.current += 1;
 
-                if (customer.type === 'ikemen' && customer.ikemenId) {
-                  setIkemenVisits(prev => {
-                    if (!prev.includes(customer.ikemenId!)) {
-                      return [...prev, customer.ikemenId!];
+                  if (customer.type === 'ikemen' && customer.ikemenId) {
+                    if (!ikemenVisitsRef.current.includes(customer.ikemenId)) {
+                      ikemenVisitsRef.current = [...ikemenVisitsRef.current, customer.ikemenId];
                     }
-                    return prev;
-                  });
+                  }
                 }
+              } else {
+                updated.status = 'leaving';
+                updated.timer = 0;
               }
-            } else {
+            }
+          }
+
+          if (customer.status === 'eating') {
+            updated.timer += speed;
+            updated.animFrame = Math.floor(updated.timer / 20) % FRAMES_PER_DIR;
+            if (updated.timer > 60 + Math.random() * 30) {
               updated.status = 'leaving';
               updated.timer = 0;
             }
           }
-        }
 
-        if (customer.status === 'eating') {
-          updated.timer += speed;
-          updated.animFrame = Math.floor(updated.timer / 20) % FRAMES_PER_DIR;
-          if (updated.timer > 60 + Math.random() * 30) {
-            updated.status = 'leaving';
-            updated.timer = 0;
+          if (customer.status === 'leaving') {
+            updated.x += 3 * speed;
+            updated.direction = 'right';
+            updated.animFrame = globalAnimFrame;
+            if (updated.x > 110) {
+              updated.status = 'gone';
+              setSeats(prevSeats => {
+                const next = [...prevSeats];
+                const idx = next.indexOf(customer.id);
+                if (idx !== -1) next[idx] = null;
+                return next;
+              });
+            }
           }
-        }
 
-        if (customer.status === 'leaving') {
-          updated.x += 3 * speed;
-          updated.direction = 'right';
-          updated.animFrame = globalAnimFrame;
-          if (updated.x > 110) {
-            updated.status = 'gone';
-            setSeats(prev => {
-              const next = [...prev];
-              const idx = next.indexOf(customer.id);
-              if (idx !== -1) next[idx] = null;
-              return next;
-            });
-          }
-        }
-
-        return updated;
-      }));
+          return updated;
+        });
+      });
 
     }, 50);
 
     return () => clearInterval(interval);
-  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock, globalAnimFrame]);
-
-  const finishDay = () => {
-    ikemenVisits.forEach((ikemenId) => {
-      useGameStore.getState().unlockEncyclopedia(ikemenId);
-      useGameStore.getState().addAffection(ikemenId, 10);
-    });
-
-    addMoney(todaySales);
-
-    setDayResult({
-      customers: todayCustomers,
-      sales: todaySales,
-      cost: todayCost,
-      profit: todaySales - todayCost,
-      ikemenVisits: ikemenVisits,
-    });
-
-    setPhase('result');
-  };
+  }, [phase, isPaused, speed, currentTime, spawnCustomer, unlockedMenus, getStock, consumeStock, globalAnimFrame, finishDay]);
 
   const handleToAdvice = () => {
     setPhase('advice');
@@ -344,21 +369,14 @@ export function DailyBusinessScreen() {
     const isIkemen = customer.type === 'ikemen';
     const char = isIkemen && customer.ikemenId ? CHARACTERS[customer.ikemenId] : null;
     
-    // 方向マップ: down=0, left=1, right=2, up=3
     const directionMap: Record<string, number> = { down: 0, left: 1, right: 2, up: 3 };
     const dirIndex = directionMap[customer.direction];
-    
-    // フレーム計算（0, 1, 2 の3フレーム）
     const frameIndex = customer.animFrame % FRAMES_PER_DIR;
-    
-    // キャラタイプ（0-7の8種類）
     const charType = customer.dotType % CHAR_COLS;
     
-    // スプライト位置計算
     const spriteX = charType * SPRITE_WIDTH;
     const spriteY = (dirIndex * FRAMES_PER_DIR + frameIndex) * SPRITE_HEIGHT;
 
-    // 表示サイズ
     const displayScale = 0.8;
     const displayWidth = SPRITE_WIDTH * displayScale;
     const displayHeight = SPRITE_HEIGHT * displayScale;
@@ -526,15 +544,15 @@ export function DailyBusinessScreen() {
                 </div>
                 <div className="bg-white/10 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-400">来客数</p>
-                  <p className="text-2xl font-black text-cyan-400">{todayCustomers}</p>
+                  <p className="text-2xl font-black text-cyan-400">{displayCustomers}</p>
                 </div>
                 <div className="bg-white/10 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-400">売上</p>
-                  <p className="text-2xl font-black text-green-400">{todaySales.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-green-400">{displaySales.toLocaleString()}</p>
                 </div>
                 <div className="bg-white/10 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-400">イケメン</p>
-                  <p className="text-2xl font-black text-pink-400">{ikemenVisits.length}</p>
+                  <p className="text-2xl font-black text-pink-400">{displayIkemen}</p>
                 </div>
               </div>
 
