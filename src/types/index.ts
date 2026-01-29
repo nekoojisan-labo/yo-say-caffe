@@ -518,47 +518,6 @@ export interface FinancialStats {
   wasteRate: number;
 }
 
-export interface Advice {
-  type: 'positive' | 'warning' | 'danger';
-  text: string;
-}
-
-// ===== 通知 =====
-
-export interface Notification {
-  id: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  message: string;
-  duration?: number;
-}
-
-// ===== 経営状態 =====
-
-export interface ManagementState {
-  day: number;
-  phase: DayPhase;
-  money: number;
-  reputation: number;
-}
-
-export interface WeeklyResult {
-  weekNumber: number;
-  totalSales: number;
-  totalCost: number;
-  totalProfit: number;
-  avgCustomers: number;
-  avgSatisfaction: number;
-  bestDay: number;
-  worstDay: number;
-}
-
-export interface ManagementDecision {
-  type: 'purchase' | 'price' | 'menu' | 'interior';
-  description: string;
-  cost?: number;
-  expectedEffect: string;
-}
-
 // ===== ゲームフラグ =====
 
 export interface GameFlags {
@@ -569,24 +528,140 @@ export interface GameFlags {
   [key: string]: boolean | string | number | null;
 }
 
-// ===== イベントペイロード =====
-
-export interface EventPayload {
-  type: string;
-  characterId?: string;
-  choices: {
-    heartDelta?: number;
-    repDelta?: number;
-    cashDelta?: number;
-    glamorPointsDelta?: number;
-    effects?: Record<string, unknown>;
-  }[];
-  [key: string]: unknown;
-}
-
 // ===== ロマンスフォーカス =====
 
 export interface RomanceFocus {
   id: IkemenId | null;
   heat: number;
+}
+
+// ===== 経営状態 =====
+
+export interface ManagementState {
+  capital: number;
+  popularity: number;
+  staffSkill: number;
+  inventoryLoss: number;
+  currentTrend: string;
+  potential: number;
+  weeklyHistory: WeeklyResult[];
+}
+
+// ===== 週次結果 =====
+
+export interface WeeklyResult {
+  weekNumber: number;
+  totalSales: number;
+  totalCost: number;
+  totalProfit: number;
+  profit: number;
+  avgCustomers: number;
+  avgSatisfaction: number;
+  bestDay: number;
+  worstDay: number;
+  popularityDelta: number;
+  staffSkillDelta: number;
+}
+
+// ===== 履歴 =====
+
+export interface GameHistory {
+  dailyResults: DayResult[];
+  lastDaySummary?: DayResult;
+  lastEventId?: string;
+}
+
+// ===== 日のフェーズ =====
+
+export type DayPhase = 'PREP' | 'OPEN' | 'RESULT' | 'ADVICE';
+
+// ===== チュートリアルステップ =====
+
+export interface TutorialStep {
+  id: string;
+  title: string;
+  description: string;
+  targetElement?: string;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  action?: 'click' | 'input' | 'wait';
+}
+
+// ===== ゲーム全体の状態 =====
+
+export interface GameState {
+  currentScreen: ScreenType;
+  day: number;
+  money: number;
+  shopRank: ShopRank;
+  gameMode: 'management' | 'romance' | 'menu';
+  reputation: number;
+
+  // 幻装
+  glamor: {
+    level: number;
+    points: number;
+    stability?: number;
+  };
+
+  // 主人公の見た目
+  protagonistVisual: {
+    setId: string;
+    parts: {
+      full: string;
+    };
+  };
+
+  // 好感度（イケメンのみ）
+  affection: Record<IkemenId, number>;
+
+  // 図鑑解放状態
+  encyclopediaUnlocked: Record<CharacterId, boolean>;
+
+  // 最後に出現した日
+  lastAppearedDay: Record<CharacterId, number>;
+
+  // シナリオ関連
+  completedScenarios: string[];
+  currentScenario: ScenarioChapter | null;
+  currentEventIndex: number;
+  scenarioFlags: Record<string, boolean | string | number>;
+
+  // チュートリアル関連
+  tutorialStep: TutorialStep | string | null;
+  tutorialCompleted: boolean;
+  isFirstPlaythrough: boolean;
+
+  // 借金関連
+  debt: number;
+  debtInterestRate: number;
+  gracePeriodDays: number;
+
+  // メタパラメータ
+  metaParameters: MetaParameters;
+
+  // 連続日数
+  consecutiveProfitDays: number;
+  consecutiveLossDays: number;
+
+  // 日のフェーズ
+  dayPhase: DayPhase;
+
+  // ゲームフラグ
+  flags: GameFlags;
+
+  // KPI
+  kpi: FinancialStats;
+
+  // 履歴
+  history: GameHistory;
+
+  // ルートロック
+  lockedRouteId: string | null;
+
+  // 経営状態
+  management: ManagementState;
+
+  // ロマンス関連
+  romanceFocus: RomanceFocus;
+  romanceTickets: Record<CharacterId, number>;
 }
