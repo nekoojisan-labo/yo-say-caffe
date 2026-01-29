@@ -24,6 +24,8 @@ import yukito from '@/assets/images/characters/yukito.webp';
 import riku from '@/assets/images/characters/riku.webp';
 import lucia from '@/assets/images/characters/lucia.webp';
 import ren from '@/assets/images/characters/ren.webp';
+import zephyros from '@/assets/images/characters/zephyros.webp';
+import rosa from '@/assets/images/characters/rosa.webp';
 
 // 主人公（幻装レベル別）
 import mcL0 from '@/assets/images/characters/mainchara/mc_L0.webp';
@@ -63,6 +65,8 @@ export const ASSETS = {
     riku,
     lucia,
     ren,
+    zephyros,  // 追加
+    rosa,      // 追加
   } as Record<string, string>,
 
   // 主人公
