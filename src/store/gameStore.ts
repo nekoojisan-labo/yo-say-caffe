@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { GameState, ScreenType, ShopRank, DayPhase, GameFlags, FinancialStats, DayResult, EventPayload, ManagementState, ManagementDecision, RomanceFocus } from '@/types';
 import { CharacterId, CHARACTER_LIST } from '@/game/characters';
 import { ManagementEngine } from '@/utils/managementEngine';
+import type { ScenarioChapter } from '@/game/scenario';
 
 interface GameStore extends GameState {
   // 画面遷移
@@ -53,10 +54,14 @@ interface GameStore extends GameState {
   // ゲーム状態を設定（ロード用）
   setGameState: (state: Partial<GameState>) => void;
 
-  // interface GameStore に追加
-unlockEncyclopedia: (charId: CharacterId) => void;
-addAffection: (charId: CharacterId, amount: number) => void;
+  // 図鑑・好感度
+  unlockEncyclopedia: (charId: CharacterId) => void;
+  addAffection: (charId: CharacterId, amount: number) => void;
 
+  // シナリオ関連
+  setCurrentScenario: (scenario: ScenarioChapter | null) => void;
+  completeScenario: (scenarioId: string) => void;
+  updateScenarioFlags: (flags: Record<string, boolean | string | number>) => void;
 }
 
 const initialKPI: FinancialStats = {
@@ -78,7 +83,6 @@ const initialFlags: GameFlags = {
 const initialAffection = {} as Record<CharacterId, number>;
 const initialEncyclopedia = {} as Record<CharacterId, boolean>;
 const initialAppearance = {} as Record<CharacterId, number>;
-
 const initialTickets = {} as Record<CharacterId, number>;
 
 CHARACTER_LIST.forEach(char => {
@@ -96,14 +100,18 @@ const initialState: GameState = {
   glamor: {
     level: 3,
     stability: 80,
-    points: 240, // L3の初期値
+    points: 240,
   },
   protagonistVisual: {
     setId: 'mc_L3',
     parts: {
-      full: ASSETS.mainChara.lv3  // ← ここを修正（空文字から実際のパスへ）
+      full: ASSETS.mainChara.lv3,
     }
   },
+  // シナリオ関連
+  completedScenarios: [],
+  currentScenario: null,
+  scenarioFlags: {},
 
   affection: initialAffection,
   encyclopediaUnlocked: initialEncyclopedia,
@@ -197,31 +205,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const charId = event.characterId as CharacterId;
         const currentAff = nextAffection[charId] || 0;
 
-        // introBase=30 を一律付与
         const introBase = event.type === 'intro' ? 30 : 0;
         const delta = (choice.heartDelta || 0) + introBase;
 
         nextAffection[charId] = Math.max(0, Math.min(9999, currentAff + delta));
         nextLastAppeared[charId] = state.day;
 
-        // 初登場時は図鑑解放
         if (event.type === 'intro') {
           nextEncyclopedia[charId] = true;
         }
 
-        // --- Heat (Oshi) Logic ---
         const isPositive = (choice.heartDelta || 0) > 0;
 
         if (nextFocus.id === charId) {
-          // 対象キャラへの反応
           nextFocus.heat = Math.max(0, Math.min(100, nextFocus.heat + (isPositive ? 10 : -5)));
         } else if (isPositive) {
-          // 別キャラに好意的な場合、現在の推し熱が冷める
           if (nextFocus.id) {
             nextFocus.heat = Math.max(0, nextFocus.heat - 3);
           }
 
-          // 熱が高いキャラがいない、または新しいキャラに乗り換える判定 (簡易的に、現在熱が低いなら乗り換え)
           if (nextFocus.heat < 10) {
             nextFocus.id = charId;
             nextFocus.heat = 10;
@@ -248,7 +250,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
           ...state.history,
           lastEventId: eventId
         },
-        // 固有のエフェクトがあれば適用
         ...(choice.effects || {})
       };
     });
@@ -298,19 +299,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
   })),
 
   unlockEncyclopedia: (charId) =>
-  set((state) => ({
-    encyclopediaUnlocked: {
-      ...state.encyclopediaUnlocked,
-      [charId]: true,
-    },
+    set((state) => ({
+      encyclopediaUnlocked: {
+        ...state.encyclopediaUnlocked,
+        [charId]: true,
+      },
+    })),
+
+  addAffection: (charId, amount) =>
+    set((state) => ({
+      affection: {
+        ...state.affection,
+        [charId]: Math.min(9999, (state.affection[charId] || 0) + amount),
+      },
+    })),
+
+  // シナリオ関連アクション
+  setCurrentScenario: (scenario) => set({ currentScenario: scenario }),
+
+  completeScenario: (scenarioId) => set((state) => ({
+    completedScenarios: [...state.completedScenarios, scenarioId],
+    currentScenario: null,
   })),
 
-addAffection: (charId, amount) =>
-  set((state) => ({
-    affection: {
-      ...state.affection,
-      [charId]: Math.min(9999, (state.affection[charId] || 0) + amount),
-    },
+  updateScenarioFlags: (flags) => set((state) => ({
+    scenarioFlags: { ...state.scenarioFlags, ...flags },
   })),
-
 }));

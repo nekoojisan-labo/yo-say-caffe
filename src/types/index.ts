@@ -1,17 +1,72 @@
 import { CharacterId } from '@/game/characters';
 
+// ===== シナリオ関連の型 =====
+
+export type ScenarioEventType = 
+  | 'dialogue'
+  | 'choice'
+  | 'narration'
+  | 'effect'
+  | 'image'
+  | 'background';
+
+export interface ChoiceOption {
+  text: string;
+  nextEventId: string;
+  effects?: {
+    money?: number;
+    reputation?: number;
+    affection?: { characterId: CharacterId; amount: number };
+    flag?: { key: string; value: boolean | string | number };
+  };
+}
+
+export interface ScenarioEvent {
+  id: string;
+  type: ScenarioEventType;
+  speaker?: CharacterId | 'protagonist' | 'narration';
+  speakerName?: string;
+  text?: string;
+  emotion?: 'normal' | 'happy' | 'sad' | 'angry' | 'surprised' | 'smirk';
+  choices?: ChoiceOption[];
+  effects?: {
+    money?: number;
+    reputation?: number;
+    flag?: { key: string; value: boolean | string | number };
+  };
+  background?: string;
+  nextEventId?: string | null;
+}
+
+export interface ScenarioChapter {
+  id: string;
+  title: string;
+  description: string;
+  triggerCondition: {
+    day?: number;
+    dayRange?: [number, number];
+    reputation?: number;
+    money?: number;
+    flag?: { key: string; value: boolean | string | number };
+  };
+  events: ScenarioEvent[];
+  isCompleted?: boolean;
+}
+
+// ===== ゲーム状態 =====
+
 export interface GameState {
   currentScreen: ScreenType;
   day: number;
   money: number;
-  reputation: number; // 評判 0-100
+  reputation: number;
   glamor: {
-    level: number;    // 幻装レベル 0-6
-    stability: number; // 安定度 0-100
-    points: number;    // 幻装ポイント 0-9999
+    level: number;
+    stability: number;
+    points: number;
   };
   protagonistVisual: {
-    setId: string;     // 例: "mc_L3"
+    setId: string;
     parts: Record<string, string>;
   };
   // キャラクター関連
@@ -26,18 +81,23 @@ export interface GameState {
   kpi: FinancialStats;
   history: {
     lastDaySummary?: DayResult;
-    dailyResults: DayResult[]; // 履歴データ
+    dailyResults: DayResult[];
     lastEventId?: string;
   };
   lockedRouteId: string | null;
   management: ManagementState;
   romanceFocus: RomanceFocus;
   romanceTickets: Record<CharacterId, number>;
+
+  // シナリオ関連
+  completedScenarios: string[];
+  currentScenario: ScenarioChapter | null;
+  scenarioFlags: Record<string, boolean | string | number>;
 }
 
 export interface RomanceFocus {
   id: CharacterId | null;
-  heat: number; // 0-100
+  heat: number;
 }
 
 export type DayPhase = 'PREP' | 'OPEN' | 'CLOSE' | 'RESULT' | 'EVENT' | 'DONE';
@@ -47,7 +107,7 @@ export interface GameFlags {
   routeLock: string | null;
   gameOver: boolean;
   gameOverReason?: string;
-  patronStage: number; // 痛客進行度
+  patronStage: number;
 }
 
 // 画面タイプ
@@ -66,7 +126,8 @@ export type ScreenType =
   | 'event'
   | 'gallery'
   | 'save'
-  | 'settings';
+  | 'settings'
+  | 'scenario';  // シナリオ画面を追加
 
 // 店舗ランク
 export type ShopRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
@@ -76,18 +137,18 @@ export type ShopRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export interface Protagonist {
   name: string;
   level: number;
-  fantasyLevel: number; // 幻想レベル
+  fantasyLevel: number;
   stats: {
-    charm: number;    // 魅力
-    talk: number;     // 話術
-    sense: number;    // センス
+    charm: number;
+    talk: number;
+    sense: number;
   };
   appearance: {
-    hair: string;       // 髪型ID
-    outfit: string;     // 服装ID
-    makeup: string;     // メイクID
-    accessory: string;  // アクセサリーID
-    aura: string;       // オーラID
+    hair: string;
+    outfit: string;
+    makeup: string;
+    accessory: string;
+    aura: string;
   };
 }
 
@@ -107,29 +168,29 @@ export interface Ikemen {
 
 // 性格属性
 export type PersonalityType =
-  | 'prince'       // 王子様系
-  | 'cool'         // クール系
-  | 'childhood'    // 幼なじみ系
-  | 'tsundere'     // ツンデレ系
-  | 'healing'      // 癒し系
-  | 'oraora'       // オラオラ系
-  | 'yandere'      // ヤンデレ系
-  | 'sporty'       // 体育会系
-  | 'mysterious'   // ミステリアス系
-  | 'intellectual';// 眼鏡インテリ系
+  | 'prince'
+  | 'cool'
+  | 'childhood'
+  | 'tsundere'
+  | 'healing'
+  | 'oraora'
+  | 'yandere'
+  | 'sporty'
+  | 'mysterious'
+  | 'intellectual';
 
 // 妖精属性
 export type ElementType =
-  | 'light'   // 光
-  | 'dark'    // 闇
-  | 'wind'    // 風
-  | 'fire'    // 炎
-  | 'water'   // 水
-  | 'thunder' // 雷
-  | 'ice'     // 氷
-  | 'earth'   // 土
-  | 'star'    // 星
-  | 'forest'; // 森
+  | 'light'
+  | 'dark'
+  | 'wind'
+  | 'fire'
+  | 'water'
+  | 'thunder'
+  | 'ice'
+  | 'earth'
+  | 'star'
+  | 'forest';
 
 // ===== メニュー =====
 
@@ -172,16 +233,15 @@ export interface Inventory {
 export interface DayResult {
   day: number;
   sales: number;
-  cogs: number; // 原価
+  cogs: number;
   fixedCost: number;
   variableCost: number;
-  // 詳細内訳
   breakdown: {
-    rent: number;      // 家賃
-    labor: number;     // 人件費
-    utilities: number; // 光熱費
-    maintenance: number; // 幻装維持費
-    other: number;     // その他（広告費、修理費など）
+    rent: number;
+    labor: number;
+    utilities: number;
+    maintenance: number;
+    other: number;
   };
   profit: number;
   cashAfter: number;
@@ -278,7 +338,7 @@ export interface InteriorEffect {
 // ===== カフェの状態 =====
 
 export interface CafeState {
-  currentTime: number;  // 分単位（9:00 = 540）
+  currentTime: number;
   isOpen: boolean;
   isPaused: boolean;
   speed: 1 | 2 | 4;
@@ -345,6 +405,9 @@ export interface SaveData {
   eventFlags: Record<string, boolean>;
   salesHistory: Record<string, number[]>;
   settings: GameSettings;
+  // シナリオ関連のセーブデータ
+  completedScenarios: string[];
+  scenarioFlags: Record<string, boolean | string | number>;
 }
 
 // セーブスロット情報
@@ -371,11 +434,11 @@ export interface CGItem {
 
 export interface FinancialStats {
   sales: number;
-  cogs: number; // 原価
+  cogs: number;
   profit: number;
   fixedCost: number;
   variableCost: number;
-  breakEven: number; // 損益分岐点
+  breakEven: number;
   waste?: number;
   costRate?: number;
   profitRate?: number;
@@ -399,24 +462,24 @@ export interface Notification {
 // ===== 経営シミュレーション =====
 
 export interface ManagementState {
-  capital: number;     // 自己資本
-  popularity: number;  // 認知度・評判 (0-100)
-  staffSkill: number;  // スタッフ習熟度 (0-100)
-  inventoryLoss: number; // 廃棄率
-  currentTrend: string; // トレンド
-  potential: number;    // 立地ポテンシャル
+  capital: number;
+  popularity: number;
+  staffSkill: number;
+  inventoryLoss: number;
+  currentTrend: string;
+  potential: number;
   weeklyHistory: WeeklyResult[];
 }
 
 export interface WeeklyResult {
   week: number;
   sales: number;
-  cogs: number;       // 材料費 (F)
-  labor: number;      // 人件費 (L)
-  rent: number;       // 家賃 (R)
-  ads: number;        // 広告費
-  loss: number;       // 廃棄ロス
-  profit: number;     // 利益
+  cogs: number;
+  labor: number;
+  rent: number;
+  ads: number;
+  loss: number;
+  profit: number;
   customers: number;
   satisfaction: number;
   popularityDelta: number;
@@ -430,8 +493,8 @@ export interface WeeklyResult {
 }
 
 export interface ManagementDecision {
-  menuDev: string;      // メニュー開発
-  procurement: number;  // 仕入れ量 (予測に対する倍率等)
-  shifts: number;       // シフト調整 (スタッフ数等)
-  investment: number;   // 設備投資/広告
+  menuDev: string;
+  procurement: number;
+  shifts: number;
+  investment: number;
 }
