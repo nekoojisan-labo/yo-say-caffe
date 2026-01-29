@@ -1,14 +1,33 @@
 import { CharacterId } from '@/game/characters';
 
-// ===== シナリオ関連の型 =====
+// ===== イケメン階級 =====
+export type IkemenRank = 'royal' | 'noble' | 'knight' | 'commoner';
 
-export type ScenarioEventType = 
-  | 'dialogue'
-  | 'choice'
-  | 'narration'
-  | 'effect'
-  | 'image'
-  | 'background';
+export const IKEMEN_RANK_LABELS: Record<IkemenRank, string> = {
+  royal: '王族',
+  noble: '貴族',
+  knight: '騎士',
+  commoner: '庶民',
+};
+
+// 階級ごとの結婚に必要な幻装レベル
+export const RANK_GLAMOR_REQUIREMENTS: Record<IkemenRank, number> = {
+  royal: 6,    // 王族: Lv6必須
+  noble: 5,    // 貴族: Lv5以上
+  knight: 4,   // 騎士: Lv4以上
+  commoner: 3, // 庶民: Lv3以上（ほぼ制限なし）
+};
+
+// ===== シナリオ関連 =====
+export type ScenarioEventType =
+  | 'dialogue'      // 会話
+  | 'choice'        // 選択肢
+  | 'narration'     // ナレーション
+  | 'effect'        // 効果（お金増減、評判変動など）
+  | 'image'         // 立ち絵変更
+  | 'background';   // 背景変更
+
+export type EmotionType = 'normal' | 'happy' | 'sad' | 'angry' | 'surprised' | 'smirk';
 
 export interface ChoiceOption {
   text: string;
@@ -27,7 +46,7 @@ export interface ScenarioEvent {
   speaker?: CharacterId | 'protagonist' | 'narration';
   speakerName?: string;
   text?: string;
-  emotion?: 'normal' | 'happy' | 'sad' | 'angry' | 'surprised' | 'smirk';
+  emotion?: EmotionType;
   choices?: ChoiceOption[];
   effects?: {
     money?: number;
@@ -45,16 +64,57 @@ export interface ScenarioChapter {
   triggerCondition: {
     day?: number;
     dayRange?: [number, number];
+    minDay?: number;
     reputation?: number;
     money?: number;
+    moneyBelow?: number;
+    glamorLevel?: number;
+    affection?: { characterId: CharacterId; amount: number };
     flag?: { key: string; value: boolean | string | number };
   };
   events: ScenarioEvent[];
-  isCompleted?: boolean;
+  priority?: number; // 同時に条件を満たす場合の優先度
 }
 
-// ===== ゲーム状態 =====
+// ===== メタパラメータ（イケメン来店判定用） =====
+export interface MetaParameters {
+  luxury: number;      // 豪華度（高級メニュー比率）
+  volume: number;      // ボリューム（食事系の量）
+  healing: number;     // 癒し度（ドリンク・スイーツ比率）
+  stability: number;   // 安定度（連続黒字日数）
+  mystery: number;     // 神秘度（特殊条件）
+  reputation: number;  // 評判（そのまま）
+}
 
+// ===== エンディング =====
+export type EndingType =
+  | 'true_end'           // シオン True End
+  | 'marriage'           // 結婚エンド（イケメン別）
+  | 'unrequited'         // 片思いエンド（幻装不足）
+  | 'business_success'   // 経営成功エンド（恋愛なし）
+  | 'single'             // 独身エンド
+  | 'bad_debt'           // Bad End（借金）
+  | 'bad_closure';       // Bad End（閉店）
+
+export interface EndingResult {
+  type: EndingType;
+  characterId?: CharacterId; // 結婚/片思いの場合
+  title: string;
+  description: string;
+}
+
+// ===== チュートリアル =====
+export type TutorialStep =
+  | 'prologue'           // プロローグ
+  | 'procurement_intro'  // 仕入れ説明
+  | 'procurement_do'     // 仕入れ実践
+  | 'operation_intro'    // 営業説明
+  | 'operation_do'       // 営業実践
+  | 'result_intro'       // 結果説明
+  | 'shouran_intro'      // 照覧の魔法説明
+  | 'tutorial_complete'; // チュートリアル完了
+
+// ===== ゲーム状態 =====
 export interface GameState {
   currentScreen: ScreenType;
   day: number;
@@ -69,14 +129,38 @@ export interface GameState {
     setId: string;
     parts: Record<string, string>;
   };
+  
   // キャラクター関連
   affection: Record<CharacterId, number>;
   encyclopediaUnlocked: Record<CharacterId, boolean>;
   lastAppearedDay: Record<CharacterId, number>;
 
+  // シナリオ関連
+  completedScenarios: string[];
+  currentScenario: ScenarioChapter | null;
+  currentEventIndex: number;
+  scenarioFlags: Record<string, boolean | string | number>;
+  
+  // チュートリアル関連
+  tutorialStep: TutorialStep | null;
+  tutorialCompleted: boolean;
+  isFirstPlaythrough: boolean;
+
+  // 経営関連
   shopRank: ShopRank;
   gameMode: 'management' | 'romance' | 'menu';
   dayPhase: DayPhase;
+  consecutiveProfitDays: number;  // 連続黒字日数
+  consecutiveLossDays: number;    // 連続赤字日数
+  
+  // 借金関連
+  debt: number;                   // 借金額
+  debtInterestRate: number;       // 利率（週利）
+  gracePeriodDays: number;        // 猶予期間残り日数
+
+  // メタパラメータ（前日の仕入れから計算）
+  metaParameters: MetaParameters;
+
   flags: GameFlags;
   kpi: FinancialStats;
   history: {
@@ -88,11 +172,6 @@ export interface GameState {
   management: ManagementState;
   romanceFocus: RomanceFocus;
   romanceTickets: Record<CharacterId, number>;
-
-  // シナリオ関連
-  completedScenarios: string[];
-  currentScenario: ScenarioChapter | null;
-  scenarioFlags: Record<string, boolean | string | number>;
 }
 
 export interface RomanceFocus {
@@ -100,7 +179,7 @@ export interface RomanceFocus {
   heat: number;
 }
 
-export type DayPhase = 'PREP' | 'OPEN' | 'CLOSE' | 'RESULT' | 'EVENT' | 'DONE';
+export type DayPhase = 'PREP' | 'OPEN' | 'CLOSE' | 'RESULT' | 'EVENT' | 'SCENARIO' | 'DONE';
 
 export interface GameFlags {
   joinedGuild: boolean;
@@ -127,13 +206,14 @@ export type ScreenType =
   | 'gallery'
   | 'save'
   | 'settings'
-  | 'scenario';  // シナリオ画面を追加
+  | 'scenario'      // 追加
+  | 'tutorial'      // 追加
+  | 'ending';       // 追加
 
 // 店舗ランク
 export type ShopRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
 // ===== 主人公 =====
-
 export interface Protagonist {
   name: string;
   level: number;
@@ -153,12 +233,12 @@ export interface Protagonist {
 }
 
 // ===== イケメン妖精 =====
-
 export interface Ikemen {
   id: string;
   name: string;
   personality: PersonalityType;
   element: ElementType;
+  rank: IkemenRank;           // 追加: 階級
   favoriteMenus: string[];
   affection: number;
   unlocked: boolean;
@@ -193,7 +273,6 @@ export type ElementType =
   | 'forest';
 
 // ===== メニュー =====
-
 export interface MenuItem {
   id: string;
   name: string;
@@ -206,6 +285,10 @@ export interface MenuItem {
   description?: string;
   flavorText?: string;
   unlockCondition?: UnlockCondition;
+  // メタパラメータへの寄与
+  luxuryValue?: number;   // 豪華度への寄与
+  volumeValue?: number;   // ボリュームへの寄与
+  healingValue?: number;  // 癒し度への寄与
 }
 
 // 解放条件
@@ -218,7 +301,6 @@ export interface UnlockCondition {
 }
 
 // ===== 在庫 =====
-
 export interface InventoryItem {
   stock: number;
   pendingOrder: number;
@@ -229,7 +311,6 @@ export interface Inventory {
 }
 
 // ===== 営業結果 =====
-
 export interface DayResult {
   day: number;
   sales: number;
@@ -250,7 +331,7 @@ export interface DayResult {
   glamorDelta: { level?: number; stability?: number };
   breakEven: number;
   warnings: string[];
-  ikemenVisits: { ikemenId: string; affectionGain: number }[];
+  ikemenVisits: { ikemenId: string; visitorName: string; affectionGain: number }[];
   protagonistChanges: Partial<Protagonist['stats']>;
 }
 
@@ -275,7 +356,6 @@ export interface EventPayload {
 }
 
 // ===== イベント =====
-
 export interface GameEvent {
   id: string;
   ikemenId: string;
@@ -286,7 +366,6 @@ export interface GameEvent {
   cgId?: string;
 }
 
-// イベントシーン
 export interface EventScene {
   id: string;
   background: string;
@@ -302,14 +381,12 @@ export interface EventScene {
   choices?: EventChoice[];
 }
 
-// 選択肢
 export interface EventChoice {
   text: string;
   affectionChange: number;
   nextSceneId: string;
 }
 
-// イベント進行状況
 export interface EventProgress {
   eventId: string;
   completed: boolean;
@@ -317,7 +394,6 @@ export interface EventProgress {
 }
 
 // ===== 内装 =====
-
 export interface InteriorItem {
   id: string;
   name: string;
@@ -336,7 +412,6 @@ export interface InteriorEffect {
 }
 
 // ===== カフェの状態 =====
-
 export interface CafeState {
   currentTime: number;
   isOpen: boolean;
@@ -353,14 +428,12 @@ export interface CafeState {
   };
 }
 
-// 席の状態
 export interface SeatState {
   id: string;
   occupied: boolean;
   customerId?: string;
 }
 
-// 客の状態
 export interface CustomerState {
   id: string;
   isIkemen: boolean;
@@ -372,7 +445,6 @@ export interface CustomerState {
 }
 
 // ===== オーディオ設定 =====
-
 export interface AudioSettings {
   bgmVolume: number;
   seVolume: number;
@@ -380,17 +452,16 @@ export interface AudioSettings {
   seMuted: boolean;
 }
 
-// ゲーム設定
 export interface GameSettings {
   audio: AudioSettings;
   textSpeed: 'slow' | 'normal' | 'fast' | 'instant';
   autoSpeed: 'slow' | 'normal' | 'fast';
   defaultCafeMode: 'auto' | 'manual';
   showConfirmDialog: boolean;
+  skipReadScenarios: boolean;  // 追加: 既読シナリオスキップ
 }
 
 // ===== セーブデータ =====
-
 export interface SaveData {
   version: string;
   savedAt: string;
@@ -405,12 +476,12 @@ export interface SaveData {
   eventFlags: Record<string, boolean>;
   salesHistory: Record<string, number[]>;
   settings: GameSettings;
-  // シナリオ関連のセーブデータ
+  // シナリオ関連
   completedScenarios: string[];
   scenarioFlags: Record<string, boolean | string | number>;
+  readScenarioEvents: string[];  // 追加: 既読イベントID
 }
 
-// セーブスロット情報
 export interface SaveSlotInfo {
   slotId: number;
   exists: boolean;
@@ -421,7 +492,6 @@ export interface SaveSlotInfo {
 }
 
 // ===== CG =====
-
 export interface CGItem {
   id: string;
   ikemenId: string;
@@ -431,7 +501,6 @@ export interface CGItem {
 }
 
 // ===== 経営指標 =====
-
 export interface FinancialStats {
   sales: number;
   cogs: number;
@@ -444,14 +513,12 @@ export interface FinancialStats {
   profitRate?: number;
 }
 
-// 経営アドバイス
 export interface Advice {
   type: 'positive' | 'warning' | 'danger';
   text: string;
 }
 
 // ===== 通知 =====
-
 export interface Notification {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
@@ -460,7 +527,6 @@ export interface Notification {
 }
 
 // ===== 経営シミュレーション =====
-
 export interface ManagementState {
   capital: number;
   popularity: number;

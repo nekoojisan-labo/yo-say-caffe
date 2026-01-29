@@ -1,10 +1,25 @@
 import { ASSETS } from '@/utils/assets';
 import { create } from 'zustand';
-import type { GameState, ScreenType, ShopRank, DayPhase, GameFlags, FinancialStats, DayResult, EventPayload, ManagementState, ManagementDecision, RomanceFocus } from '@/types';
-import { CharacterId, CHARACTER_LIST } from '@/game/characters';
+import type {
+  GameState,
+  ScreenType,
+  ShopRank,
+  DayPhase,
+  GameFlags,
+  FinancialStats,
+  DayResult,
+  EventPayload,
+  ManagementState,
+  ManagementDecision,
+  RomanceFocus,
+  ScenarioChapter,
+  TutorialStep,
+  MetaParameters,
+} from '@/types';
+import { CharacterId, CHARACTER_LIST, IkemenId } from '@/game/characters';
 import { ManagementEngine } from '@/utils/managementEngine';
-import type { ScenarioChapter } from '@/game/scenario';
 
+// ===== ストアインターフェース =====
 interface GameStore extends GameState {
   // 画面遷移
   setScreen: (screen: ScreenType) => void;
@@ -33,6 +48,9 @@ interface GameStore extends GameState {
   updateHistory: (summary: DayResult) => void;
   updateProtagonistVisual: (visual: GameState['protagonistVisual']) => void;
 
+  // 連続日数更新
+  updateConsecutiveDays: (profit: number) => void;
+
   // Romance Focus / Tickets
   updateRomanceFocus: (changes: Partial<RomanceFocus>) => void;
   addRomanceTicket: (charId: CharacterId) => void;
@@ -48,22 +66,40 @@ interface GameStore extends GameState {
   runManagementTurn: (decision: ManagementDecision) => void;
   updateManagement: (changes: Partial<ManagementState>) => void;
 
-  // ゲーム状態をリセット
-  resetGame: () => void;
-
-  // ゲーム状態を設定（ロード用）
-  setGameState: (state: Partial<GameState>) => void;
-
   // 図鑑・好感度
   unlockEncyclopedia: (charId: CharacterId) => void;
   addAffection: (charId: CharacterId, amount: number) => void;
 
   // シナリオ関連
   setCurrentScenario: (scenario: ScenarioChapter | null) => void;
+  setCurrentEventIndex: (index: number) => void;
+  advanceScenarioEvent: () => void;
   completeScenario: (scenarioId: string) => void;
   updateScenarioFlags: (flags: Record<string, boolean | string | number>) => void;
+  setScenarioFlag: (key: string, value: boolean | string | number) => void;
+
+  // チュートリアル関連
+  setTutorialStep: (step: TutorialStep | null) => void;
+  completeTutorial: () => void;
+  skipTutorial: () => void;
+
+  // 借金関連
+  takeLoan: (amount: number, interestRate: number) => void;
+  repayDebt: (amount: number) => void;
+  applyDebtInterest: () => void;
+  setGracePeriod: (days: number) => void;
+
+  // メタパラメータ
+  updateMetaParameters: (params: Partial<MetaParameters>) => void;
+  calculateMetaParameters: (orders: Record<string, number>) => void;
+
+  // ゲーム状態
+  resetGame: () => void;
+  setGameState: (state: Partial<GameState>) => void;
+  startNewGame: (skipTutorial: boolean) => void;
 }
 
+// ===== 初期値定義 =====
 const initialKPI: FinancialStats = {
   sales: 0,
   cogs: 0,
@@ -80,6 +116,15 @@ const initialFlags: GameFlags = {
   patronStage: 0,
 };
 
+const initialMetaParameters: MetaParameters = {
+  luxury: 0,
+  volume: 0,
+  healing: 0,
+  stability: 0,
+  mystery: 0,
+  reputation: 10,
+};
+
 const initialAffection = {} as Record<CharacterId, number>;
 const initialEncyclopedia = {} as Record<CharacterId, boolean>;
 const initialAppearance = {} as Record<CharacterId, number>;
@@ -91,6 +136,9 @@ CHARACTER_LIST.forEach(char => {
   initialAppearance[char.id] = 0;
   initialTickets[char.id] = 0;
 });
+
+// シオンは最初から図鑑解放
+initialEncyclopedia['shion'] = true;
 
 const initialState: GameState = {
   currentScreen: 'title',
@@ -106,19 +154,40 @@ const initialState: GameState = {
     setId: 'mc_L3',
     parts: {
       full: ASSETS.mainChara.lv3,
-    }
+    },
   },
-  // シナリオ関連
-  completedScenarios: [],
-  currentScenario: null,
-  scenarioFlags: {},
 
+  // キャラクター関連
   affection: initialAffection,
   encyclopediaUnlocked: initialEncyclopedia,
   lastAppearedDay: initialAppearance,
+
+  // シナリオ関連
+  completedScenarios: [],
+  currentScenario: null,
+  currentEventIndex: 0,
+  scenarioFlags: {},
+
+  // チュートリアル関連
+  tutorialStep: null,
+  tutorialCompleted: false,
+  isFirstPlaythrough: true,
+
+  // 経営関連
   shopRank: 'F',
   gameMode: 'management',
   dayPhase: 'PREP',
+  consecutiveProfitDays: 0,
+  consecutiveLossDays: 0,
+
+  // 借金関連
+  debt: 0,
+  debtInterestRate: 0.1, // 週利10%
+  gracePeriodDays: 0,
+
+  // メタパラメータ
+  metaParameters: initialMetaParameters,
+
   flags: initialFlags,
   kpi: initialKPI,
   history: {
@@ -138,9 +207,11 @@ const initialState: GameState = {
   romanceTickets: initialTickets,
 };
 
+// ===== ストア作成 =====
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
+  // ===== 画面遷移 =====
   setScreen: (screen) => set({ currentScreen: screen }),
 
   setGameMode: (mode) => set({ gameMode: mode }),
@@ -149,8 +220,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setLockedRoute: (id) => set({ lockedRouteId: id }),
 
-  advanceDay: () => set((state) => ({ day: state.day + 1 })),
+  // ===== 日数進行 =====
+  advanceDay: () => set((state) => {
+    const newDay = state.day + 1;
+    
+    // 借金の利息処理（7日ごと = 週末）
+    let newDebt = state.debt;
+    if (state.debt > 0 && newDay % 7 === 0) {
+      newDebt = Math.floor(state.debt * (1 + state.debtInterestRate));
+    }
 
+    // 猶予期間のカウントダウン
+    let newGracePeriod = state.gracePeriodDays;
+    if (newGracePeriod > 0) {
+      newGracePeriod -= 1;
+    }
+
+    return {
+      day: newDay,
+      debt: newDebt,
+      gracePeriodDays: newGracePeriod,
+    };
+  }),
+
+  // ===== お金の操作 =====
   addMoney: (amount) =>
     set((state) => ({
       money: state.money + amount,
@@ -165,32 +258,78 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return true;
   },
 
-  updateReputation: (delta) => set((state) => ({
-    reputation: Math.max(0, Math.min(100, state.reputation + delta))
-  })),
+  // ===== パラメータ更新 =====
+  updateReputation: (delta) =>
+    set((state) => ({
+      reputation: Math.max(0, Math.min(100, state.reputation + delta)),
+    })),
 
-  updateGlamor: (changes) => set((state) => ({
-    glamor: { ...state.glamor, ...changes }
-  })),
+  updateGlamor: (changes) =>
+    set((state) => ({
+      glamor: { ...state.glamor, ...changes },
+    })),
 
-  updateKPI: (kpi) => set((state) => ({
-    kpi: { ...state.kpi, ...kpi }
-  })),
+  updateKPI: (kpi) =>
+    set((state) => ({
+      kpi: { ...state.kpi, ...kpi },
+    })),
 
-  updateFlags: (flags) => set((state) => ({
-    flags: { ...state.flags, ...flags }
-  })),
+  updateFlags: (flags) =>
+    set((state) => ({
+      flags: { ...state.flags, ...flags },
+    })),
 
-  updateHistory: (summary) => set((state) => ({
-    history: {
-      ...state.history,
-      lastDaySummary: summary,
-      dailyResults: [...state.history.dailyResults, summary]
-    }
-  })),
+  updateHistory: (summary) =>
+    set((state) => ({
+      history: {
+        ...state.history,
+        lastDaySummary: summary,
+        dailyResults: [...state.history.dailyResults, summary],
+      },
+    })),
 
   updateProtagonistVisual: (visual) => set({ protagonistVisual: visual }),
 
+  // ===== 連続日数更新 =====
+  updateConsecutiveDays: (profit) =>
+    set((state) => {
+      if (profit > 0) {
+        return {
+          consecutiveProfitDays: state.consecutiveProfitDays + 1,
+          consecutiveLossDays: 0,
+        };
+      } else if (profit < 0) {
+        return {
+          consecutiveProfitDays: 0,
+          consecutiveLossDays: state.consecutiveLossDays + 1,
+        };
+      }
+      return state;
+    }),
+
+  // ===== Romance Focus / Tickets =====
+  updateRomanceFocus: (changes) =>
+    set((state) => ({
+      romanceFocus: { ...state.romanceFocus, ...changes },
+    })),
+
+  addRomanceTicket: (charId) =>
+    set((state) => ({
+      romanceTickets: {
+        ...state.romanceTickets,
+        [charId]: Math.min(9, (state.romanceTickets[charId] || 0) + 1),
+      },
+    })),
+
+  useRomanceTicket: (charId) =>
+    set((state) => ({
+      romanceTickets: {
+        ...state.romanceTickets,
+        [charId]: Math.max(0, (state.romanceTickets[charId] || 0) - 1),
+      },
+    })),
+
+  // ===== イベント選択肢の適用 =====
   applyEventChoice: (eventId, choiceIndex, event) => {
     const choice = event.choices[choiceIndex];
     if (!choice) return;
@@ -223,9 +362,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (nextFocus.id) {
             nextFocus.heat = Math.max(0, nextFocus.heat - 3);
           }
-
           if (nextFocus.heat < 10) {
-            nextFocus.id = charId;
+            nextFocus.id = charId as IkemenId;
             nextFocus.heat = 10;
           }
         }
@@ -244,23 +382,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
         money: state.money + (choice.cashDelta || 0),
         glamor: {
           ...state.glamor,
-          points: Math.max(0, state.glamor.points + (choice.glamorPointsDelta || 0))
+          points: Math.max(0, state.glamor.points + (choice.glamorPointsDelta || 0)),
         },
         history: {
           ...state.history,
-          lastEventId: eventId
+          lastEventId: eventId,
         },
-        ...(choice.effects || {})
+        ...(choice.effects || {}),
       };
     });
   },
 
+  // ===== ランク更新 =====
   setShopRank: (rank) => set({ shopRank: rank }),
 
-  resetGame: () => set(initialState),
-
-  setGameState: (state) => set(state),
-
+  // ===== 経営シミュレーション =====
   runManagementTurn: (decision) => {
     const { management, shopRank } = get();
     const result = ManagementEngine.runWeeklySimulation(management, decision, shopRank);
@@ -272,32 +408,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         popularity: Math.max(0, Math.min(100, state.management.popularity + result.popularityDelta)),
         staffSkill: Math.max(0, Math.min(100, state.management.staffSkill + result.staffSkillDelta)),
         weeklyHistory: [...state.management.weeklyHistory, result],
-      }
+      },
     }));
   },
 
-  updateManagement: (changes) => set((state) => ({
-    management: { ...state.management, ...changes }
-  })),
+  updateManagement: (changes) =>
+    set((state) => ({
+      management: { ...state.management, ...changes },
+    })),
 
-  updateRomanceFocus: (changes) => set((state) => ({
-    romanceFocus: { ...state.romanceFocus, ...changes }
-  })),
-
-  addRomanceTicket: (charId) => set((state) => ({
-    romanceTickets: {
-      ...state.romanceTickets,
-      [charId]: Math.min(9, (state.romanceTickets[charId] || 0) + 1)
-    }
-  })),
-
-  useRomanceTicket: (charId) => set((state) => ({
-    romanceTickets: {
-      ...state.romanceTickets,
-      [charId]: Math.max(0, (state.romanceTickets[charId] || 0) - 1)
-    }
-  })),
-
+  // ===== 図鑑・好感度 =====
   unlockEncyclopedia: (charId) =>
     set((state) => ({
       encyclopediaUnlocked: {
@@ -314,15 +434,162 @@ export const useGameStore = create<GameStore>((set, get) => ({
       },
     })),
 
-  // シナリオ関連アクション
-  setCurrentScenario: (scenario) => set({ currentScenario: scenario }),
+  // ===== シナリオ関連 =====
+  setCurrentScenario: (scenario) =>
+    set({
+      currentScenario: scenario,
+      currentEventIndex: 0,
+      currentScreen: scenario ? 'scenario' : get().currentScreen,
+    }),
 
-  completeScenario: (scenarioId) => set((state) => ({
-    completedScenarios: [...state.completedScenarios, scenarioId],
-    currentScenario: null,
-  })),
+  setCurrentEventIndex: (index) => set({ currentEventIndex: index }),
 
-  updateScenarioFlags: (flags) => set((state) => ({
-    scenarioFlags: { ...state.scenarioFlags, ...flags },
-  })),
+  advanceScenarioEvent: () =>
+    set((state) => ({
+      currentEventIndex: state.currentEventIndex + 1,
+    })),
+
+  completeScenario: (scenarioId) =>
+    set((state) => ({
+      completedScenarios: [...state.completedScenarios, scenarioId],
+      currentScenario: null,
+      currentEventIndex: 0,
+      currentScreen: 'home',
+    })),
+
+  updateScenarioFlags: (flags) =>
+    set((state) => ({
+      scenarioFlags: { ...state.scenarioFlags, ...flags },
+    })),
+
+  setScenarioFlag: (key, value) =>
+    set((state) => ({
+      scenarioFlags: { ...state.scenarioFlags, [key]: value },
+    })),
+
+  // ===== チュートリアル関連 =====
+  setTutorialStep: (step) => set({ tutorialStep: step }),
+
+  completeTutorial: () =>
+    set({
+      tutorialStep: null,
+      tutorialCompleted: true,
+      scenarioFlags: {
+        ...get().scenarioFlags,
+        tutorial_complete: true,
+      },
+    }),
+
+  skipTutorial: () =>
+    set({
+      tutorialStep: null,
+      tutorialCompleted: true,
+      isFirstPlaythrough: false,
+      day: 4, // チュートリアル後の日数から開始
+      scenarioFlags: {
+        ...get().scenarioFlags,
+        tutorial_complete: true,
+        prologue_complete: true,
+      },
+    }),
+
+  // ===== 借金関連 =====
+  takeLoan: (amount, interestRate) =>
+    set((state) => ({
+      money: state.money + amount,
+      debt: state.debt + amount,
+      debtInterestRate: interestRate,
+      scenarioFlags: {
+        ...state.scenarioFlags,
+        has_debt: true,
+        zephyros_loan_taken: true,
+      },
+    })),
+
+  repayDebt: (amount) =>
+    set((state) => {
+      const actualRepay = Math.min(amount, state.debt);
+      const newDebt = state.debt - actualRepay;
+      return {
+        money: state.money - actualRepay,
+        debt: newDebt,
+        scenarioFlags: {
+          ...state.scenarioFlags,
+          has_debt: newDebt > 0,
+        },
+      };
+    }),
+
+  applyDebtInterest: () =>
+    set((state) => {
+      if (state.debt <= 0) return state;
+      const interest = Math.floor(state.debt * state.debtInterestRate);
+      return {
+        debt: state.debt + interest,
+      };
+    }),
+
+  setGracePeriod: (days) => set({ gracePeriodDays: days }),
+
+  // ===== メタパラメータ =====
+  updateMetaParameters: (params) =>
+    set((state) => ({
+      metaParameters: { ...state.metaParameters, ...params },
+    })),
+
+  calculateMetaParameters: (orders) => {
+    // この関数は別ファイル(metaParameters.ts)で詳細実装予定
+    // ここでは仮実装
+    const state = get();
+    
+    let luxury = 0;
+    let volume = 0;
+    let healing = 0;
+    
+    // 仕入れ内容から計算（詳細は後で実装）
+    Object.entries(orders).forEach(([itemId, quantity]) => {
+      // メニューデータと照合して計算
+      volume += quantity;
+    });
+
+    set({
+      metaParameters: {
+        luxury,
+        volume,
+        healing,
+        stability: state.consecutiveProfitDays * 10,
+        mystery: Math.random() * 20, // ランダム要素
+        reputation: state.reputation,
+      },
+    });
+  },
+
+  // ===== ゲーム状態 =====
+  resetGame: () => set(initialState),
+
+  setGameState: (state) => set(state),
+
+  startNewGame: (skipTutorial) => {
+    if (skipTutorial) {
+      set({
+        ...initialState,
+        currentScreen: 'home',
+        tutorialStep: null,
+        tutorialCompleted: true,
+        isFirstPlaythrough: false,
+        day: 4,
+        scenarioFlags: {
+          tutorial_complete: true,
+          prologue_complete: true,
+        },
+      });
+    } else {
+      set({
+        ...initialState,
+        currentScreen: 'scenario',
+        tutorialStep: 'prologue',
+        isFirstPlaythrough: true,
+      });
+    }
+  },
 }));
