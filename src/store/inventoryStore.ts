@@ -5,65 +5,34 @@ import { MENU_DATA } from '@/data/menuData';
 interface InventoryStore {
   inventory: Inventory;
   unlockedMenus: string[];
-  salesHistory: Record<string, number[]>; // 過去7日分の販売履歴
-  wasteHistory: Record<string, number[]>; // 過去7日分の廃棄履歴
-  dailySales: Record<string, number>; // 今日の販売数
+  salesHistory: Record<string, number[]>;
+  wasteHistory: Record<string, number[]>;
 
-  // 在庫を取得
   getStock: (itemId: string) => number;
-
-  // 在庫を追加
+  getTotalStock: () => number;
   addStock: (itemId: string, amount: number) => void;
-
-  // 在庫を消費
   consumeStock: (itemId: string, amount: number) => boolean;
-
-  // 発注中を追加
   addPendingOrder: (itemId: string, amount: number) => void;
-
-  // 発注を確定（複数アイテム）
   confirmOrders: (orders: Record<string, number>) => void;
-
-  // 日替わり処理（発注中を在庫に反映）
   processDayChange: () => void;
-
-  // 販売を記録
   recordSale: (itemId: string, amount: number) => void;
-
-  // 廃棄を記録
   recordWaste: (itemId: string, amount: number) => void;
-
-  // メニューを解放
   unlockMenu: (menuId: string) => void;
-
-  // メニューが解放済みかチェック
   isMenuUnlocked: (menuId: string) => boolean;
-
-  // 今日の販売を記録
-  addDailySale: (itemId: string, amount: number) => void;
-
-  // 今日の販売をリセット
-  resetDailySales: () => void;
-
-  // データを設定（ロード用）
   setInventory: (inventory: Inventory) => void;
   setUnlockedMenus: (menus: string[]) => void;
   setSalesHistory: (history: Record<string, number[]>) => void;
-
-  // リセット
   resetInventory: () => void;
 }
 
-// 初期在庫（初期解放メニューのみ）
 function createInitialInventory(): Inventory {
   const inventory: Inventory = {};
   MENU_DATA.filter((menu) => menu.unlocked).forEach((menu) => {
-    inventory[menu.id] = { stock: 10, pendingOrder: 0, waste: 0 };
+    inventory[menu.id] = { stock: 10, pendingOrder: 0 };
   });
   return inventory;
 }
 
-// 初期解放メニュー
 function getInitialUnlockedMenus(): string[] {
   return MENU_DATA.filter((menu) => menu.unlocked).map((menu) => menu.id);
 }
@@ -73,16 +42,20 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   unlockedMenus: getInitialUnlockedMenus(),
   salesHistory: {},
   wasteHistory: {},
-  dailySales: {},
 
   getStock: (itemId) => {
     const item = get().inventory[itemId];
     return item ? item.stock : 0;
   },
 
+  getTotalStock: () => {
+    const inv = get().inventory;
+    return Object.values(inv).reduce((sum, item) => sum + item.stock, 0);
+  },
+
   addStock: (itemId, amount) =>
     set((state) => {
-      const current = state.inventory[itemId] ?? { stock: 0, pendingOrder: 0, waste: 0 };
+      const current = state.inventory[itemId] ?? { stock: 0, pendingOrder: 0 };
       return {
         inventory: {
           ...state.inventory,
@@ -109,7 +82,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
   addPendingOrder: (itemId, amount) =>
     set((state) => {
-      const current = state.inventory[itemId] ?? { stock: 0, pendingOrder: 0, waste: 0 };
+      const current = state.inventory[itemId] ?? { stock: 0, pendingOrder: 0 };
       return {
         inventory: {
           ...state.inventory,
@@ -134,7 +107,6 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
         newInventory[itemId] = {
           stock: item.stock + item.pendingOrder,
           pendingOrder: 0,
-          waste: 0, // 新しい日なので廃棄リセット
         };
       });
       return { inventory: newInventory };
@@ -143,7 +115,6 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   recordSale: (itemId, amount) =>
     set((state) => {
       const history = state.salesHistory[itemId] ?? [];
-      // 最新の日に加算（最後の要素）
       const newHistory =
         history.length === 0
           ? [amount]
@@ -151,7 +122,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       return {
         salesHistory: {
           ...state.salesHistory,
-          [itemId]: newHistory.slice(-7), // 最新7日分を保持
+          [itemId]: newHistory.slice(-7),
         },
       };
     }),
@@ -175,10 +146,9 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     set((state) => {
       if (state.unlockedMenus.includes(menuId)) return state;
 
-      // 在庫に追加
       const newInventory = {
         ...state.inventory,
-        [menuId]: { stock: 0, pendingOrder: 0, waste: 0 },
+        [menuId]: { stock: 0, pendingOrder: 0 },
       };
 
       return {
@@ -191,16 +161,6 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     return get().unlockedMenus.includes(menuId);
   },
 
-  addDailySale: (itemId, amount) =>
-    set((state) => ({
-      dailySales: {
-        ...state.dailySales,
-        [itemId]: (state.dailySales[itemId] ?? 0) + amount,
-      },
-    })),
-
-  resetDailySales: () => set({ dailySales: {} }),
-
   setInventory: (inventory) => set({ inventory }),
   setUnlockedMenus: (menus) => set({ unlockedMenus: menus }),
   setSalesHistory: (history) => set({ salesHistory: history }),
@@ -211,6 +171,5 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       unlockedMenus: getInitialUnlockedMenus(),
       salesHistory: {},
       wasteHistory: {},
-      dailySales: {},
     }),
 }));
