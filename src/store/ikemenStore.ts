@@ -11,6 +11,7 @@ interface AffectionChangeResult {
 
 interface IkemenStore {
   ikemenList: Ikemen[];
+  routeScores: Record<string, number>;
 
   // イケメンを取得
   getIkemen: (id: string) => Ikemen | undefined;
@@ -20,6 +21,12 @@ interface IkemenStore {
 
   // 好感度を変更
   changeAffection: (id: string, amount: number) => AffectionChangeResult | null;
+
+  // ルートスコアを加算
+  addRouteScore: (id: string, amount: number) => void;
+
+  // 最もルートスコアが高いキャラを取得
+  getTopRouteCandidate: () => { id: string; score: number } | null;
 
   // 来店回数を増やす
   incrementVisitCount: (id: string) => void;
@@ -40,6 +47,7 @@ interface IkemenStore {
   resetIkemen: () => void;
 }
 
+
 // 好感度からレベルを計算
 export function getAffectionLevel(affection: number): number {
   if (affection >= 100) return 5; // MAX
@@ -52,6 +60,7 @@ export function getAffectionLevel(affection: number): number {
 
 export const useIkemenStore = create<IkemenStore>((set, get) => ({
   ikemenList: createAllInitialIkemen(),
+  routeScores: {},
 
   getIkemen: (id) => {
     return get().ikemenList.find((ikemen) => ikemen.id === id);
@@ -80,6 +89,29 @@ export const useIkemenStore = create<IkemenStore>((set, get) => ({
     }));
 
     return { newAffection, levelUp, newLevel, previousLevel };
+  },
+
+  addRouteScore: (id, amount) =>
+    set((state) => ({
+      routeScores: {
+        ...state.routeScores,
+        [id]: (state.routeScores[id] || 0) + amount,
+      },
+    })),
+
+  getTopRouteCandidate: () => {
+    const scores = get().routeScores;
+    let topId = null;
+    let maxScore = -1;
+
+    Object.entries(scores).forEach(([id, score]) => {
+      if (score > maxScore) {
+        maxScore = score;
+        topId = id;
+      }
+    });
+
+    return topId ? { id: topId, score: maxScore } : null;
   },
 
   incrementVisitCount: (id) =>
@@ -137,5 +169,5 @@ export const useIkemenStore = create<IkemenStore>((set, get) => ({
 
   setIkemenList: (ikemenList) => set({ ikemenList }),
 
-  resetIkemen: () => set({ ikemenList: createAllInitialIkemen() }),
+  resetIkemen: () => set({ ikemenList: createAllInitialIkemen(), routeScores: {} }),
 }));

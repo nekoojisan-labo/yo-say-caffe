@@ -5,6 +5,7 @@ export { Modal, ConfirmModal } from './Modal';
 export { Card, CompactCard } from './Card';
 export { ProgressBar, SegmentedProgress } from './ProgressBar';
 export { StatDisplay, StatsGroup } from './StatDisplay';
+export * from './ProtagonistPortrait';
 export { Tab, TabPanel } from './Tab';
 export {
   ImagePlaceholder,

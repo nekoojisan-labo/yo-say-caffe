@@ -19,6 +19,9 @@ interface ProtagonistStore {
   // 主人公データを設定（ロード用）
   setProtagonist: (protagonist: Protagonist) => void;
 
+  // 幻想レベルを設定
+  setFantasyLevel: (level: number) => void;
+
   // リセット
   resetProtagonist: () => void;
 }
@@ -26,6 +29,7 @@ interface ProtagonistStore {
 const initialProtagonist: Protagonist = {
   name: '主人公',
   level: 1,
+  fantasyLevel: 3, // 幻想レベル
   stats: {
     charm: 10,  // 魅力
     talk: 10,   // 話術
@@ -77,6 +81,11 @@ export const useProtagonistStore = create<ProtagonistStore>((set) => ({
     })),
 
   setProtagonist: (protagonist) => set({ protagonist }),
+
+  setFantasyLevel: (level) =>
+    set((state) => ({
+      protagonist: { ...state.protagonist, fantasyLevel: level },
+    })),
 
   resetProtagonist: () => set({ protagonist: initialProtagonist }),
 }));
