@@ -7,7 +7,8 @@ import cafeNight from '@/assets/images/cafenight.webp';
 import shiire from '@/assets/images/shiire.webp';
 import kekka from '@/assets/images/kekka.webp';
 import dotCustomers from '@/assets/images/dot_customers.webp';
-
+import forestPath from '@/assets/images/forest_path.webp';       // 追加
+import cafeMystic from '@/assets/images/cafe_mystic.webp';       // 追加
 // ロゴ
 import logoJa from '@/assets/images/logo_ja.webp';
 import logoEn from '@/assets/images/logo_en.webp';
@@ -83,4 +84,14 @@ export const ASSETS = {
 
    // ドットキャラ
   dotCustomers,
+
+  backgrounds: {
+    cafeMorning,
+    cafeEvening,
+    cafeNight,
+    shiire,
+    kekka,
+    forestPath,      // 追加
+    cafeMystic,      // 追加
+  },
 };

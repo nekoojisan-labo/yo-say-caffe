@@ -13,12 +13,13 @@ export const PROLOGUE: ScenarioChapter[] = [
     id: 'prologue_chapter1',
     title: 'プロローグ：森のカフェ',
     description: '祖母の遺したカフェを継ぐことになった主人公',
+    background: 'forestPath',  // ← 変更
     triggerCondition: {
       day: 1,
       flag: { key: 'game_started', value: true }
     },
     events: [
-      // シーン1: 導入 - カフェの外観
+      // シーン1: 導入 - カフェの外観（forestPath背景）
       {
         id: 'pro_1_1',
         type: 'narration',
@@ -60,10 +61,11 @@ export const PROLOGUE: ScenarioChapter[] = [
       },
       
       // シーン2: シオンとの出会い
-      {
+       {
         id: 'pro_1_7',
         type: 'narration',
         text: 'その時——店の奥から、不思議な光が漏れているのに気づいた。',
+        background: 'cafeMystic',  // ← 追加
         nextEventId: 'pro_1_8'
       },
       {
