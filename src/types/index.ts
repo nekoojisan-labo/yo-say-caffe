@@ -54,20 +54,20 @@ export interface MetaParameters {
 
 // ===== シナリオ関連 =====
 
-export type ScenarioEventType = 
-  | 'dialogue' 
-  | 'choice' 
-  | 'narration' 
-  | 'effect' 
-  | 'image' 
+export type ScenarioEventType =
+  | 'dialogue'
+  | 'choice'
+  | 'narration'
+  | 'effect'
+  | 'image'
   | 'background';
 
-export type EmotionType = 
-  | 'normal' 
-  | 'happy' 
-  | 'sad' 
-  | 'angry' 
-  | 'surprised' 
+export type EmotionType =
+  | 'normal'
+  | 'happy'
+  | 'sad'
+  | 'angry'
+  | 'surprised'
   | 'smirk';
 
 // シナリオイベントの効果
@@ -170,54 +170,7 @@ export interface TutorialStep {
   action?: 'click' | 'input' | 'wait';
 }
 
-// ===== ゲーム全体の状態 =====
-
-export type DayPhase = 'PREP' | 'OPEN' | 'RESULT' | 'ADVICE';
-
-export interface GameState {
-  currentScreen: ScreenType;
-  day: number;
-  money: number;
-  shopRank: ShopRank;
-  gameMode: 'management' | 'romance' | 'menu';
-  reputation: number;
-  
-// GameState の glamor 部分を以下に変更
-  glamor: {
-    level: number;
-    points: number;
-    stability?: number;  // 追加
-  };
-  
-  protagonistVisual: {
-    setId: string;
-    parts: {
-      full: string;
-    };
-  };
-  
-  affection: Record<IkemenId, number>;
-  
-  completedScenarios: string[];
-  currentScenario: ScenarioChapter | null;
-  currentEventIndex: number;
-  scenarioFlags: Record<string, boolean | string | number>;
-  
-  tutorialStep: number;
-  tutorialCompleted: boolean;
-  isFirstPlaythrough: boolean;
-  
-  debt: number;
-  debtInterestRate: number;
-  gracePeriodDays: number;
-  
-  metaParameters: MetaParameters;
-  
-  consecutiveProfitDays: number;
-  consecutiveLossDays: number;
-  
-  dayPhase: DayPhase;
-}
+// ===== スクリーン =====
 
 export type ScreenType =
   | 'title'
@@ -240,6 +193,10 @@ export type ScreenType =
   | 'ending';
 
 export type ShopRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+
+// ===== 日のフェーズ =====
+
+export type DayPhase = 'PREP' | 'OPEN' | 'RESULT' | 'ADVICE';
 
 // ===== 主人公 =====
 
@@ -569,21 +526,6 @@ export interface GameHistory {
   dailyResults: DayResult[];
   lastDaySummary?: DayResult;
   lastEventId?: string;
-}
-
-// ===== 日のフェーズ =====
-
-export type DayPhase = 'PREP' | 'OPEN' | 'RESULT' | 'ADVICE';
-
-// ===== チュートリアルステップ =====
-
-export interface TutorialStep {
-  id: string;
-  title: string;
-  description: string;
-  targetElement?: string;
-  position?: 'top' | 'bottom' | 'left' | 'right';
-  action?: 'click' | 'input' | 'wait';
 }
 
 // ===== ゲーム全体の状態 =====
