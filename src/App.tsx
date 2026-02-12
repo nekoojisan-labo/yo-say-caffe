@@ -12,8 +12,8 @@ import { ManagementSimScreen } from '@/components/common/screens/ManagementSimSc
 import { MenuDevScreen } from '@/components/common/screens/MenuDevScreen';
 import { InteriorScreen } from '@/components/common/screens/InteriorScreen';
 import { DailyBusinessScreen } from '@/components/common/screens/DailyBusinessScreen';
-// 新規追加
 import { ScenarioScreen } from '@/components/common/screens/ScenarioScreen';
+import { EndingScreen } from '@/components/common/screens/EndingScreen';  // 追加
 
 // 画面プレースホルダーコンポーネント
 function PlaceholderScreen({ name, color }: { name: string; color: string }) {
@@ -60,7 +60,7 @@ const SCREEN_COMPONENTS: Record<ScreenType, React.FC> = {
   // 新規追加
   scenario: ScenarioScreen,
   tutorial: () => <PlaceholderScreen name="チュートリアル" color="#0d0517" />,
-  ending: () => <PlaceholderScreen name="エンディング" color="#0d0517" />,
+    ending: EndingScreen,  // 変更
 };
 
 function App() {

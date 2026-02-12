@@ -14,6 +14,14 @@ import logoJa from '@/assets/images/logo_ja.webp';
 import logoEn from '@/assets/images/logo_en.webp';
 import subtitle from '@/assets/images/subtitle.webp';
 
+// エンディング
+import endingTrue from '@/assets/images/ending_true.webp';
+import endingMarriage from '@/assets/images/ending_marriage.webp';
+import endingUnrequited from '@/assets/images/ending_unrequited.webp';
+import endingSuccess from '@/assets/images/ending_success.webp';
+import endingNormal from '@/assets/images/ending_normal.webp';
+import endingBad from '@/assets/images/ending_bad.webp';
+
 // キャラクター
 import aoi from '@/assets/images/characters/aoi.webp';
 import kagerou from '@/assets/images/characters/kagerou.webp';
@@ -53,6 +61,17 @@ export const ASSETS = {
   logoJa,
   logoEn,
   subtitle,
+
+    // エンディング
+  endings: {
+    true_end: endingTrue,
+    marriage_end: endingMarriage,
+    unrequited_end: endingUnrequited,
+    success_end: endingSuccess,
+    normal_end: endingNormal,
+    bad_end_debt: endingBad,
+    bad_end_bankrupt: endingBad,
+  } as Record<string, string>,
 
   // キャラクター
   characters: {
