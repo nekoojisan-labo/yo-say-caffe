@@ -111,6 +111,30 @@ export function ScenarioScreen() {
     };
   }, [isAutoMode, isTyping, currentEvent]);
 
+   // テキストなしエフェクトイベントは自動で次に進む
+  useEffect(() => {
+    if (!currentEvent || !currentScenario) return;
+    if (currentEvent.type === 'effect' && !currentEvent.text) {
+      applyEffects(currentEvent.effects);
+      if (currentEvent.nextEventId === null) {
+        completeScenario(currentScenario.id);
+      } else if (currentEvent.nextEventId) {
+        const nextIndex = findEventIndex(currentEvent.nextEventId);
+        if (nextIndex !== -1) {
+          setCurrentEventIndex(nextIndex);
+        } else {
+          completeScenario(currentScenario.id);
+        }
+      } else {
+        if (currentEventIndex < currentScenario.events.length - 1) {
+          setCurrentEventIndex(currentEventIndex + 1);
+        } else {
+          completeScenario(currentScenario.id);
+        }
+      }
+    }
+  }, [currentEvent]);
+
   // イベントIDからインデックスを取得
   const findEventIndex = useCallback((eventId: string): number => {
     if (!currentScenario) return -1;
@@ -469,8 +493,8 @@ export function ScenarioScreen() {
           )}
         </div>
 
-        {/* 中央: エフェクト表示 */}
-        {isEffect && (
+         {/* 中央: エフェクト表示 */}
+        {isEffect && displayedText && (
           <div className="absolute inset-0 flex items-center justify-center z-20">
             <div
               className="text-center p-8 rounded-xl animate-pulse"
@@ -579,8 +603,8 @@ export function ScenarioScreen() {
         </div>
       )}
 
-      {/* エフェクトタイプの場合の進行ボタン */}
-      {isEffect && !isTyping && (
+       {/* エフェクトタイプの場合の進行ボタン */}
+      {isEffect && !isTyping && displayedText && (
         <div className="relative mx-4 mb-4 text-center">
           <button
             onClick={handleNext}
