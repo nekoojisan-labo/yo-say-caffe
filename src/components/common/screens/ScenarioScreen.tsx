@@ -432,8 +432,8 @@ export function ScenarioScreen() {
         </div>
       )}
 
-        {/* キャラクター表示エリア */}
-      <div className="relative flex-1 flex items-end justify-between px-8 pb-4">
+         {/* キャラクター表示エリア */}
+      <div className="relative flex-1 flex items-end justify-between overflow-hidden">
         {/* 左側: 話しているイケメン/特殊キャラ */}
         <div className="flex-1 flex justify-start items-end">
           {characterImage && currentEvent.speaker !== 'protagonist' && (
@@ -441,16 +441,19 @@ export function ScenarioScreen() {
               <img
                 src={characterImage}
                 alt={speakerName}
-                className="h-80 object-contain drop-shadow-2xl"
+                className="w-auto object-cover object-top drop-shadow-2xl"
                 style={{
+                  height: '85vh',
+                  maxWidth: '40vw',
                   filter: currentEvent.speaker === (currentEvent.speaker)
                     ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
                     : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                  clipPath: 'inset(0 0 10% 0)',
                 }}
               />
               {/* キャラ名タグ */}
               <div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                className="absolute bottom-[12%] left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
                 style={{
                   background: 'rgba(0,0,0,0.6)',
                   border: '1px solid rgba(255,215,0,0.4)',
@@ -465,7 +468,7 @@ export function ScenarioScreen() {
 
         {/* 中央: エフェクト表示 */}
         {isEffect && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-20">
             <div
               className="text-center p-8 rounded-xl animate-pulse"
               style={{
@@ -488,11 +491,14 @@ export function ScenarioScreen() {
               <img
                 src={ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default}
                 alt="主人公"
-                className="h-72 object-contain drop-shadow-2xl"
+                className="w-auto object-cover object-top drop-shadow-2xl"
                 style={{
+                  height: '80vh',
+                  maxWidth: '35vw',
                   filter: currentEvent.speaker === 'protagonist'
                     ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
                     : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                  clipPath: 'inset(0 0 10% 0)',
                 }}
               />
             </div>
