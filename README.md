@@ -2,8 +2,9 @@
 妖精カフェ物語
 
 ## ドキュメント
+- **[ワークフロー](docs/WORKFLOW.md)** - 🌟 最初に読む！共同開発の基本ルール
 - [開発手順書](docs/DEVELOPMENT_GUIDE.md) - 開発の進め方、優先順位、チェックリスト
-- [共同開発ガイド](docs/COLLABORATION_GUIDE.md) - 複数AI/人間での並行開発ルール
+- [共同開発ガイド](docs/COLLABORATION_GUIDE.md) - 詳細な並行開発ルール
 - [タスク担当状況](docs/TASK_ASSIGNMENTS.md) - 誰が何を担当しているか
 
 ## Web版の動かし方
