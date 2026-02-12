@@ -111,6 +111,30 @@ export function ScenarioScreen() {
     };
   }, [isAutoMode, isTyping, currentEvent]);
 
+   // テキストなしエフェクトイベントは自動で次に進む
+  useEffect(() => {
+    if (!currentEvent || !currentScenario) return;
+    if (currentEvent.type === 'effect' && !currentEvent.text) {
+      applyEffects(currentEvent.effects);
+      if (currentEvent.nextEventId === null) {
+        completeScenario(currentScenario.id);
+      } else if (currentEvent.nextEventId) {
+        const nextIndex = findEventIndex(currentEvent.nextEventId);
+        if (nextIndex !== -1) {
+          setCurrentEventIndex(nextIndex);
+        } else {
+          completeScenario(currentScenario.id);
+        }
+      } else {
+        if (currentEventIndex < currentScenario.events.length - 1) {
+          setCurrentEventIndex(currentEventIndex + 1);
+        } else {
+          completeScenario(currentScenario.id);
+        }
+      }
+    }
+  }, [currentEvent]);
+
   // イベントIDからインデックスを取得
   const findEventIndex = useCallback((eventId: string): number => {
     if (!currentScenario) return -1;
@@ -432,24 +456,46 @@ export function ScenarioScreen() {
         </div>
       )}
 
-      {/* キャラクター表示エリア */}
-      <div className="relative flex-1 flex items-end justify-center pb-4">
-        {characterImage && (
-          <div className="relative animate-fade-in">
-            <img
-              src={characterImage}
-              alt={speakerName}
-              className="h-80 object-contain drop-shadow-2xl"
-              style={{
-                filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))',
-              }}
-            />
-          </div>
-        )}
+            {/* キャラクター表示エリア */}
+      <div className="relative flex-1 flex items-end justify-between overflow-hidden">
+        {/* 左側: 話しているイケメン/特殊キャラ */}
+        <div className="flex-1 flex justify-start items-end">
+          {characterImage && currentEvent.speaker !== 'protagonist' && (
+            <div
+              className="relative animate-fade-in overflow-hidden"
+              style={{ height: '70vh', width: '35vw' }}
+            >
+              <img
+                src={characterImage}
+                alt={speakerName}
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
+                style={{
+                  height: '140%',
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
+                  filter: currentEvent.speaker === (currentEvent.speaker)
+                    ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
+                    : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                }}
+              />
+              {/* キャラ名タグ */}
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap z-10"
+                style={{
+                  background: 'rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(255,215,0,0.4)',
+                  color: 'rgba(255,215,0,0.9)',
+                }}
+              >
+                {speakerName}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* エフェクトタイプの場合は中央に表示 */}
-        {isEffect && (
-          <div className="absolute inset-0 flex items-center justify-center">
+         {/* 中央: エフェクト表示 */}
+        {isEffect && displayedText && (
+          <div className="absolute inset-0 flex items-center justify-center z-20">
             <div
               className="text-center p-8 rounded-xl animate-pulse"
               style={{
@@ -464,6 +510,30 @@ export function ScenarioScreen() {
             </div>
           </div>
         )}
+
+        {/* 右側: 主人公 */}
+        <div className="flex-1 flex justify-end items-end">
+          {currentEvent.speaker && currentEvent.speaker !== 'narration' && currentEvent.type !== 'effect' && (
+            <div
+              className="relative animate-fade-in overflow-hidden"
+              style={{ height: '65vh', width: '30vw' }}
+            >
+              <img
+                src={ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default}
+                alt="主人公"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
+                style={{
+                  height: '140%',
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
+                  filter: currentEvent.speaker === 'protagonist'
+                    ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
+                    : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* テキストボックス */}
@@ -533,8 +603,8 @@ export function ScenarioScreen() {
         </div>
       )}
 
-      {/* エフェクトタイプの場合の進行ボタン */}
-      {isEffect && !isTyping && (
+       {/* エフェクトタイプの場合の進行ボタン */}
+      {isEffect && !isTyping && displayedText && (
         <div className="relative mx-4 mb-4 text-center">
           <button
             onClick={handleNext}

@@ -7,11 +7,21 @@ import cafeNight from '@/assets/images/cafenight.webp';
 import shiire from '@/assets/images/shiire.webp';
 import kekka from '@/assets/images/kekka.webp';
 import dotCustomers from '@/assets/images/dot_customers.webp';
+import forestPath from '@/assets/images/forest_path.webp';
+import cafeMystic from '@/assets/images/cafe_mystic.webp';
 
 // ロゴ
 import logoJa from '@/assets/images/logo_ja.webp';
 import logoEn from '@/assets/images/logo_en.webp';
 import subtitle from '@/assets/images/subtitle.webp';
+
+// エンディング
+import endingTrue from '@/assets/images/ending_true.webp';
+import endingMarriage from '@/assets/images/ending_marriage.webp';
+import endingUnrequited from '@/assets/images/ending_unrequited.webp';
+import endingSuccess from '@/assets/images/ending_success.webp';
+import endingNormal from '@/assets/images/ending_normal.webp';
+import endingBad from '@/assets/images/ending_bad.webp';
 
 // キャラクター
 import aoi from '@/assets/images/characters/aoi.webp';
@@ -46,12 +56,25 @@ export const ASSETS = {
     cafeNight,
     shiire,
     kekka,
+    forestPath,
+    cafeMystic,
   },
 
   // ロゴ
   logoJa,
   logoEn,
   subtitle,
+
+  // エンディング
+  endings: {
+    true_end: endingTrue,
+    marriage_end: endingMarriage,
+    unrequited_end: endingUnrequited,
+    success_end: endingSuccess,
+    normal_end: endingNormal,
+    bad_end_debt: endingBad,
+    bad_end_bankrupt: endingBad,
+  } as Record<string, string>,
 
   // キャラクター
   characters: {
@@ -65,8 +88,8 @@ export const ASSETS = {
     riku,
     lucia,
     ren,
-    zephyros,  // 追加
-    rosa,      // 追加
+    zephyros,
+    rosa,
   } as Record<string, string>,
 
   // 主人公
@@ -81,6 +104,6 @@ export const ASSETS = {
     lv6: mcL6,
   } as Record<string, string>,
 
-   // ドットキャラ
+  // ドットキャラ
   dotCustomers,
 };
