@@ -7,8 +7,9 @@ import cafeNight from '@/assets/images/cafenight.webp';
 import shiire from '@/assets/images/shiire.webp';
 import kekka from '@/assets/images/kekka.webp';
 import dotCustomers from '@/assets/images/dot_customers.webp';
-import forestPath from '@/assets/images/forest_path.webp';       // 追加
-import cafeMystic from '@/assets/images/cafe_mystic.webp';       // 追加
+import forestPath from '@/assets/images/forest_path.webp';
+import cafeMystic from '@/assets/images/cafe_mystic.webp';
+
 // ロゴ
 import logoJa from '@/assets/images/logo_ja.webp';
 import logoEn from '@/assets/images/logo_en.webp';
@@ -55,6 +56,8 @@ export const ASSETS = {
     cafeNight,
     shiire,
     kekka,
+    forestPath,
+    cafeMystic,
   },
 
   // ロゴ
@@ -62,7 +65,7 @@ export const ASSETS = {
   logoEn,
   subtitle,
 
-    // エンディング
+  // エンディング
   endings: {
     true_end: endingTrue,
     marriage_end: endingMarriage,
@@ -85,8 +88,8 @@ export const ASSETS = {
     riku,
     lucia,
     ren,
-    zephyros,  // 追加
-    rosa,      // 追加
+    zephyros,
+    rosa,
   } as Record<string, string>,
 
   // 主人公
@@ -101,16 +104,6 @@ export const ASSETS = {
     lv6: mcL6,
   } as Record<string, string>,
 
-   // ドットキャラ
+  // ドットキャラ
   dotCustomers,
-
-  backgrounds: {
-    cafeMorning,
-    cafeEvening,
-    cafeNight,
-    shiire,
-    kekka,
-    forestPath,      // 追加
-    cafeMystic,      // 追加
-  },
 };

@@ -432,22 +432,38 @@ export function ScenarioScreen() {
         </div>
       )}
 
-      {/* キャラクター表示エリア */}
-      <div className="relative flex-1 flex items-end justify-center pb-4">
-        {characterImage && (
-          <div className="relative animate-fade-in">
-            <img
-              src={characterImage}
-              alt={speakerName}
-              className="h-80 object-contain drop-shadow-2xl"
-              style={{
-                filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))',
-              }}
-            />
-          </div>
-        )}
+        {/* キャラクター表示エリア */}
+      <div className="relative flex-1 flex items-end justify-between px-8 pb-4">
+        {/* 左側: 話しているイケメン/特殊キャラ */}
+        <div className="flex-1 flex justify-start items-end">
+          {characterImage && currentEvent.speaker !== 'protagonist' && (
+            <div className="relative animate-fade-in">
+              <img
+                src={characterImage}
+                alt={speakerName}
+                className="h-80 object-contain drop-shadow-2xl"
+                style={{
+                  filter: currentEvent.speaker === (currentEvent.speaker)
+                    ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
+                    : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                }}
+              />
+              {/* キャラ名タグ */}
+              <div
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                style={{
+                  background: 'rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(255,215,0,0.4)',
+                  color: 'rgba(255,215,0,0.9)',
+                }}
+              >
+                {speakerName}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* エフェクトタイプの場合は中央に表示 */}
+        {/* 中央: エフェクト表示 */}
         {isEffect && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div
@@ -464,6 +480,24 @@ export function ScenarioScreen() {
             </div>
           </div>
         )}
+
+        {/* 右側: 主人公 */}
+        <div className="flex-1 flex justify-end items-end">
+          {currentEvent.speaker && currentEvent.speaker !== 'narration' && currentEvent.type !== 'effect' && (
+            <div className="relative animate-fade-in">
+              <img
+                src={ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default}
+                alt="主人公"
+                className="h-72 object-contain drop-shadow-2xl"
+                style={{
+                  filter: currentEvent.speaker === 'protagonist'
+                    ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
+                    : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* テキストボックス */}

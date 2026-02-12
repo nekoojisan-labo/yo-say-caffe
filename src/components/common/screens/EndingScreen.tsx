@@ -64,8 +64,7 @@ const ENDING_DATA: Record<EndingType, {
 };
 
 export function EndingScreen() {
-  const { setScreen, money, glamor, affection, completedScenarios, scenarioFlags } = useGameStore();
-
+  const { setScreen, money, glamor, affection, scenarioFlags } = useGameStore();
   const [phase, setPhase] = useState<'fadeIn' | 'showImage' | 'showTitle' | 'showDetails' | 'showButtons'>('fadeIn');
   const [endingResult, setEndingResult] = useState<EndingResult | null>(null);
 
