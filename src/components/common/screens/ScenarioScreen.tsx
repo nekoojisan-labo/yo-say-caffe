@@ -432,28 +432,31 @@ export function ScenarioScreen() {
         </div>
       )}
 
-         {/* キャラクター表示エリア */}
+          {/* キャラクター表示エリア */}
       <div className="relative flex-1 flex items-end justify-between overflow-hidden">
         {/* 左側: 話しているイケメン/特殊キャラ */}
         <div className="flex-1 flex justify-start items-end">
           {characterImage && currentEvent.speaker !== 'protagonist' && (
-            <div className="relative animate-fade-in">
+            <div
+              className="relative animate-fade-in overflow-hidden"
+              style={{ height: '70vh', width: '35vw' }}
+            >
               <img
                 src={characterImage}
                 alt={speakerName}
-                className="w-auto object-cover object-top drop-shadow-2xl"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
                 style={{
-                  height: '85vh',
-                  maxWidth: '40vw',
+                  height: '140%',
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
                   filter: currentEvent.speaker === (currentEvent.speaker)
                     ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
                     : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
-                  clipPath: 'inset(0 0 10% 0)',
                 }}
               />
               {/* キャラ名タグ */}
               <div
-                className="absolute bottom-[12%] left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap z-10"
                 style={{
                   background: 'rgba(0,0,0,0.6)',
                   border: '1px solid rgba(255,215,0,0.4)',
@@ -487,18 +490,21 @@ export function ScenarioScreen() {
         {/* 右側: 主人公 */}
         <div className="flex-1 flex justify-end items-end">
           {currentEvent.speaker && currentEvent.speaker !== 'narration' && currentEvent.type !== 'effect' && (
-            <div className="relative animate-fade-in">
+            <div
+              className="relative animate-fade-in overflow-hidden"
+              style={{ height: '65vh', width: '30vw' }}
+            >
               <img
                 src={ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default}
                 alt="主人公"
-                className="w-auto object-cover object-top drop-shadow-2xl"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
                 style={{
-                  height: '80vh',
-                  maxWidth: '35vw',
+                  height: '140%',
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
                   filter: currentEvent.speaker === 'protagonist'
                     ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3)) brightness(1.05)'
                     : 'drop-shadow(0 0 10px rgba(0,0,0,0.3)) brightness(0.7)',
-                  clipPath: 'inset(0 0 10% 0)',
                 }}
               />
             </div>
