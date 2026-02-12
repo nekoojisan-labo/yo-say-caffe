@@ -432,7 +432,7 @@ export function ScenarioScreen() {
         </div>
       )}
 
-          {/* キャラクター表示エリア */}
+            {/* キャラクター表示エリア */}
       <div className="relative flex-1 flex items-end justify-between overflow-hidden">
         {/* 左側: 話しているイケメン/特殊キャラ */}
         <div className="flex-1 flex justify-start items-end">
@@ -444,7 +444,7 @@ export function ScenarioScreen() {
               <img
                 src={characterImage}
                 alt={speakerName}
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
                 style={{
                   height: '140%',
                   objectFit: 'cover',
@@ -497,7 +497,7 @@ export function ScenarioScreen() {
               <img
                 src={ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default}
                 alt="主人公"
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-auto drop-shadow-2xl"
                 style={{
                   height: '140%',
                   objectFit: 'cover',
