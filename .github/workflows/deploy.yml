@@ -32,7 +32,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Build for GitHub Pages
-        run: npm run build
+        run: npx vite build
         env:
           DEPLOY_TARGET: pages
 
