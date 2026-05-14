@@ -29,11 +29,13 @@ export function FairyHeader({ title, gold, onSettings }: FairyHeaderProps) {
             style={{
               background: 'var(--theme-card-bg)',
               borderColor: 'var(--theme-card-border)',
-              color: 'var(--theme-text)',
             }}
           >
-            <CoinIcon size={18} color="currentColor" />
-            <span className="text-sm font-bold tabular-nums sm:text-base">
+            <CoinIcon size={18} color="#FFD700" />
+            <span
+              className="text-sm font-bold tabular-nums sm:text-base"
+              style={{ color: '#FFD700' }}
+            >
               {gold.toLocaleString()}
             </span>
           </div>

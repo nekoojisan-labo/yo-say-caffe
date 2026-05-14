@@ -10,7 +10,7 @@ interface FairyButtonProps {
 
 const variantClasses: Record<NonNullable<FairyButtonProps['variant']>, string> = {
   primary:
-    'text-white shadow-[0_0_20px_rgba(255,255,255,0.16)] animate-glow',
+    'bg-[linear-gradient(135deg,#ec4899,#8b5cf6)] text-white shadow-[0_0_20px_rgba(236,72,153,0.6),0_0_40px_rgba(139,92,246,0.4)] hover:shadow-[0_0_28px_rgba(236,72,153,0.8),0_0_56px_rgba(139,92,246,0.55)] animate-glow',
   secondary:
     'text-[var(--theme-text)] bg-white/10 border border-[var(--theme-card-border)] backdrop-blur-sm',
   danger:
@@ -18,10 +18,7 @@ const variantClasses: Record<NonNullable<FairyButtonProps['variant']>, string> =
 };
 
 const variantStyles: Record<NonNullable<FairyButtonProps['variant']>, CSSProperties> = {
-  primary: {
-    backgroundImage:
-      'linear-gradient(to right, var(--theme-btn-primary-from), var(--theme-btn-primary-to))',
-  },
+  primary: {},
   secondary: {},
   danger: {},
 };

@@ -53,12 +53,13 @@ export function FairyNavBar({
               style={{
                 background: isActive ? 'var(--theme-card-bg)' : 'transparent',
                 borderColor: isActive ? 'var(--theme-card-border)' : 'transparent',
-                color: 'var(--theme-text)',
-                boxShadow: isActive ? '0 0 18px rgba(255,255,255,0.12)' : 'none',
+                color: isActive ? '#ec4899' : 'var(--theme-text)',
+                boxShadow: isActive ? '0 0 18px rgba(236,72,153,0.35)' : 'none',
+                filter: isActive ? 'drop-shadow(0 0 8px rgba(236,72,153,0.5))' : 'none',
               }}
               aria-current={isActive ? 'page' : undefined}
             >
-              <Icon size={20} color="currentColor" />
+              <Icon size={28} color="currentColor" />
               <span>{label}</span>
             </button>
           );

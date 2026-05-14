@@ -86,9 +86,9 @@ export function HomeScreen() {
                 <FairyButton
                   variant="primary"
                   onClick={() => setScreen('cafe')}
-                  className="w-full justify-center gap-3 py-4 text-lg font-black sm:text-xl"
+                  className="w-[80%] justify-center gap-3 py-4 text-xl font-black sm:text-2xl"
                 >
-                  <CoffeeIcon size={22} color="currentColor" />
+                  <CoffeeIcon size={24} color="currentColor" />
                   <span>営業開始</span>
                 </FairyButton>
                 <p
