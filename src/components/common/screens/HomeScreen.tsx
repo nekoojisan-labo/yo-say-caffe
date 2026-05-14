@@ -1,112 +1,114 @@
+import { ReactNode } from 'react';
+import {
+  BoxIcon,
+  CalendarIcon,
+  CoffeeIcon,
+  SparkleIcon,
+  StarIcon,
+} from '@/components/icons';
+import {
+  FairyButton,
+  FairyCard,
+  FairyHeader,
+  FairyNavBar,
+} from '@/components/ui';
+import { useGameTheme } from '@/hooks/useGameTheme';
 import { useGameStore, useInventoryStore } from '@/store';
-import { ASSETS } from '@/utils/assets';
 
 export function HomeScreen() {
+  useGameTheme();
+
   const { day, money, reputation, shopRank, glamor, setScreen } = useGameStore();
   const { inventory } = useInventoryStore();
 
   const totalStock = Object.values(inventory).reduce((sum, item) => sum + item.stock, 0);
   const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
   const dayOfWeek = dayNames[(day - 1) % 7];
-
-  // 幻装レベルに応じた主人公画像
-  const mcImage = ASSETS.mainChara[`lv${glamor.level}`] || ASSETS.mainChara.default;
+  const glamorStability = glamor.stability ?? 0;
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0d0517] text-white overflow-hidden relative">
-      {/* 背景グラデーション */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-purple-900/30 via-transparent to-[#0d0517]" />
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={{
+        background: 'var(--theme-bg)',
+        color: 'var(--theme-text)',
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_36%)]" />
+        <div className="absolute -left-24 top-24 h-64 w-64 rounded-full bg-pink-300/10 blur-3xl" />
+        <div className="absolute right-[-4rem] top-1/3 h-72 w-72 rounded-full bg-violet-300/10 blur-3xl" />
+        <div className="absolute bottom-20 left-1/4 h-48 w-48 rounded-full bg-sky-300/10 blur-3xl" />
       </div>
 
-      {/* ヘッダー */}
-      <header className="relative z-20 p-4 bg-black/40 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-black bg-gradient-to-r from-pink-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent">
-              妖精カフェ物語
-            </h1>
-            <p className="text-xs text-gray-400">恋愛×経営シミュレーション</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs text-gray-400">所持金</p>
-              <p className="text-xl font-bold text-yellow-400">{money.toLocaleString()} G</p>
-            </div>
-            <button
-              onClick={() => setScreen('settings')}
-              className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors"
-            >
-              ⚙️
-            </button>
-          </div>
-        </div>
-      </header>
+      <FairyHeader
+        title="妖精カフェ物語"
+        gold={money}
+        onSettings={() => setScreen('settings')}
+      />
 
-      {/* メインエリア */}
-      <main className="relative z-10 flex-1 flex overflow-hidden">
-        {/* 左側：ステータス＆メニュー */}
-        <div className="w-full md:w-1/2 lg:w-2/5 p-4 flex flex-col justify-between overflow-y-auto">
-          {/* ステータスカード */}
-          <div className="space-y-3 mb-6">
-            <div className="grid grid-cols-2 gap-3">
-              <StatusCard icon="📅" label="日付" value={`${day}日目`} sub={`${dayOfWeek}曜日`} />
-              <StatusCard icon="⭐" label="ランク" value={shopRank} sub={`評判 ${reputation}`} />
-              <StatusCard icon="✨" label="幻装" value={`Lv.${glamor.level}`} sub={`安定度 ${glamor.stability}%`} />
-              <StatusCard icon="📦" label="在庫" value={`${totalStock}個`} color="text-cyan-400" />
-            </div>
-          </div>
-
-          {/* メインボタン */}
-          <div className="flex flex-col items-center gap-4 mb-6">
-            <button
-              onClick={() => setScreen('cafe')}
-              className="group relative w-full max-w-xs"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-2xl blur-lg opacity-50 group-hover:opacity-80 transition-opacity" />
-              <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 px-8 py-5 rounded-2xl font-black text-xl shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-3">
-                <span className="text-2xl">☕</span>
-                <span>営業開始</span>
-              </div>
-            </button>
-            <p className="text-gray-400 text-sm text-center">
-              仕入れをして、カフェを営業しよう！
-            </p>
-          </div>
-
-          {/* クイックメニュー */}
-          <div className="grid grid-cols-3 gap-2">
-            <QuickButton icon="📝" label="開発" onClick={() => setScreen('menu-dev')} />
-            <QuickButton icon="🏠" label="内装" onClick={() => setScreen('interior')} />
-            <QuickButton icon="📖" label="図鑑" onClick={() => setScreen('ikemen-list')} />
-            <QuickButton icon="👤" label="主人公" onClick={() => setScreen('protagonist')} />
-            <QuickButton icon="💾" label="セーブ" onClick={() => setScreen('save')} />
-            <QuickButton icon="📊" label="経営" onClick={() => setScreen('management')} />
-          </div>
-        </div>
-
-        {/* 右側：主人公キャラクター */}
-        <div className="hidden md:flex md:w-1/2 lg:w-3/5 items-end justify-center relative">
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[#0d0517]/80 z-10 pointer-events-none" />
-          <img
-            src={mcImage}
-            alt="主人公"
-            className="h-[90%] object-contain object-bottom drop-shadow-2xl"
-            style={{ filter: 'drop-shadow(0 0 30px rgba(168, 85, 247, 0.3))' }}
+      <main className="relative z-10 mx-auto flex h-full w-full max-w-5xl flex-col overflow-y-auto px-4 pb-28 pt-20 sm:px-6">
+        <section className="grid grid-cols-2 gap-3 pt-4 sm:gap-4">
+          <StatusCard
+            icon={<CalendarIcon size={22} color="currentColor" />}
+            label="日付"
+            value={`${day}日目`}
+            subtext={`${dayOfWeek}曜日`}
           />
-        </div>
+          <StatusCard
+            icon={<StarIcon size={22} color="currentColor" />}
+            label="ランク"
+            value={shopRank}
+            subtext={`評判 ${reputation}`}
+          />
+          <StatusCard
+            icon={<SparkleIcon size={22} color="currentColor" />}
+            label="幻装"
+            value={`Lv.${glamor.level}`}
+            subtext={`安定度 ${glamorStability}%`}
+          />
+          <StatusCard
+            icon={<BoxIcon size={22} color="currentColor" />}
+            label="在庫"
+            value={`${totalStock}個`}
+            subtext="営業準備OK"
+          />
+        </section>
+
+        <section className="flex flex-1 flex-col items-center justify-center py-10 sm:py-14">
+          <div className="mb-8 w-full max-w-md">
+            <FairyCard className="relative overflow-hidden px-5 py-8 sm:px-8 sm:py-10">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_45%)]" />
+              <div className="relative flex flex-col items-center gap-5 text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 shadow-[0_0_30px_rgba(255,255,255,0.12)]">
+                  <CoffeeIcon size={36} color="currentColor" />
+                </div>
+                <FairyButton
+                  variant="primary"
+                  onClick={() => setScreen('cafe')}
+                  className="w-full justify-center gap-3 py-4 text-lg font-black sm:text-xl"
+                >
+                  <CoffeeIcon size={22} color="currentColor" />
+                  <span>営業開始</span>
+                </FairyButton>
+                <p
+                  className="text-sm font-medium sm:text-base"
+                  style={{ color: 'var(--theme-text)' }}
+                >
+                  仕入れをして、カフェを営業しよう！
+                </p>
+              </div>
+            </FairyCard>
+          </div>
+          <div className="grid w-full max-w-3xl gap-3 sm:grid-cols-3">
+            <MiniHint title="今日の目標" value="お客様を迎える準備を整える" />
+            <MiniHint title="カフェランク" value={`${shopRank} / 評判 ${reputation}`} />
+            <MiniHint title="幻装状態" value={`Lv.${glamor.level} / 安定度 ${glamorStability}%`} />
+          </div>
+        </section>
       </main>
 
-      {/* フッター */}
-      <footer className="relative z-20 p-3 border-t border-white/10 bg-black/40 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-sm text-gray-400">
-            💡 イケメン妖精たちと仲良くなって、カフェを繁盛させよう！
-          </p>
-        </div>
-      </footer>
+      <FairyNavBar currentScreen="home" onNavigate={setScreen} />
     </div>
   );
 }
@@ -115,43 +117,46 @@ function StatusCard({
   icon,
   label,
   value,
-  sub,
-  color = 'text-white',
+  subtext,
 }: {
-  icon: string;
+  icon: ReactNode;
   label: string;
   value: string;
-  sub?: string;
-  color?: string;
+  subtext: string;
 }) {
   return (
-    <div className="bg-black/40 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-      <div className="flex items-center gap-2 mb-1">
-        <span>{icon}</span>
-        <span className="text-xs text-gray-400">{label}</span>
+    <FairyCard className="min-h-[132px] p-4">
+      <div className="mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/10">
+          {icon}
+        </div>
+        <span className="text-xs font-semibold tracking-wide opacity-70">{label}</span>
       </div>
-      <p className={`text-lg font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-500">{sub}</p>}
-    </div>
+      <p className="text-xl font-black sm:text-2xl" style={{ color: 'var(--theme-text)' }}>
+        {value}
+      </p>
+      <p className="mt-1 text-xs opacity-75 sm:text-sm" style={{ color: 'var(--theme-text)' }}>
+        {subtext}
+      </p>
+    </FairyCard>
   );
 }
 
-function QuickButton({
-  icon,
-  label,
-  onClick,
+function MiniHint({
+  title,
+  value,
 }: {
-  icon: string;
-  label: string;
-  onClick: () => void;
+  title: string;
+  value: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className="bg-black/40 hover:bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10 hover:border-white/20 transition-all flex flex-col items-center gap-1 group"
-    >
-      <span className="text-xl group-hover:scale-110 transition-transform">{icon}</span>
-      <span className="text-xs text-gray-400 group-hover:text-white transition-colors">{label}</span>
-    </button>
+    <FairyCard className="p-4">
+      <p className="text-xs font-semibold tracking-wide opacity-70" style={{ color: 'var(--theme-text)' }}>
+        {title}
+      </p>
+      <p className="mt-1 text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
+        {value}
+      </p>
+    </FairyCard>
   );
 }
